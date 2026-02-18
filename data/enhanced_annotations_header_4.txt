@@ -1,0 +1,6 @@
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene name">
+##INFO=<ID=DRUG,Number=.,Type=String,Description="Associated drug(s)">
+##INFO=<ID=EFFECT,Number=1,Type=String,Description="Predicted effect of mutation">
+##INFO=<ID=WHO_CLASSIFICATION,Number=1,Type=String,Description="WHO resistance classification">
+##INFO=<ID=VARIANT_ID,Number=1,Type=String,Description="WHO graded variant identifier">
+##INFO=<ID=GENOME_POSITION,Number=1,Type=Integer,Description="Genome position">
