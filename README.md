@@ -1,6 +1,6 @@
 # TB Genomics to FHIR Mutation Pipeline
 
-Please refer to our full documentation: https://tb-pipeline-docs.readthedocs.io/en/latest/index.html
+Please refer to our [full documentation](https://tb-pipeline-docs.readthedocs.io/)
 
 ## Main Features
 - Multi-platform: Illumina paired-end, Oxford Nanopore long reads, direct VCF input, and Deeplex Excel Report
