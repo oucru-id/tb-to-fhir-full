@@ -1,4 +1,4 @@
-# TB Mutation Pipeline
+# TB Genomics to FHIR Mutation Pipeline
 
 Please refer to our full documentation: https://tb-pipeline-docs.readthedocs.io/en/latest/index.html
 
