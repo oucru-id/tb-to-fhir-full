@@ -4,7 +4,6 @@ nextflow.enable.dsl = 2
 
 process MULTIQC {
     publishDir "${params.results_dir}/qc", mode: 'copy'
-    debug true
 
     input:
     path(qc_files)
@@ -36,7 +35,6 @@ process MULTIQC {
 
 process CREATE_SAMPLE_REPORTS {
     publishDir "${params.results_dir}/reports", mode: 'copy'
-    debug true
 
     input:
     path(annotated_vcf)
@@ -54,7 +52,6 @@ process CREATE_SAMPLE_REPORTS {
     
     for file in ${lineage_files}; do
         if [ -f "\$file" ]; then
-            echo "Copying lineage file: \$file"
             cp "\$file" lineage_data/
         fi
     done
