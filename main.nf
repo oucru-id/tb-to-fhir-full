@@ -19,7 +19,6 @@ include { VALIDATE }              from './workflows/validate_fhir.nf'
 include { MERGE_CLINICAL_DATA }   from './workflows/merge_clinical_data.nf'
 include { UPLOAD_FHIR }           from './workflows/upload_fhir.nf'
 include { VERSIONS }              from './workflows/utils.nf'
-include { DEEPLEX }               from './workflows/deeplex.nf'
 
 workflow {
     illumina_reads_ch = Channel
@@ -34,17 +33,9 @@ workflow {
         .fromPath("${params.vcf_dir}/*.vcf{,.gz}", checkIfExists: false)
         .map { file -> tuple(file.baseName.replaceFirst(/\.vcf(\.gz)?$/, ''), file) }
 
-    deeplex_ch = Channel
-        .fromPath("${params.deeplex_dir}/*.xlsx", checkIfExists: false)
-        .filter { file -> !file.name.startsWith('~$') }
-
     illumina_out = ILLUMINA(illumina_reads_ch)
     nanopore_out = NANOPORE(nanopore_reads_ch)
     vcf_out = VCF_PROCESSING(vcf_ch) 
-
-    // all_consensus = illumina_out.consensus
-    //    .mix(nanopore_out.consensus)
-    //    .collect()
 
     all_filtered = illumina_out.filtered
         .mix(nanopore_out.filtered)
@@ -76,11 +67,6 @@ workflow {
     
     clinical_metadata_ch = Channel.fromPath(params.clinical_metadata, checkIfExists: false)
         .first() 
-    
-    deeplex_clinical_ch = Channel.fromPath(params.clinical_metadata_deeplex, checkIfExists: false)
-        .first()
-
-    deeplex_out = DEEPLEX(deeplex_ch, deeplex_clinical_ch)
 
     merged_clinical_out = MERGE_CLINICAL_DATA(
         fhir_out.fhir_output, 
