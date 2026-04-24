@@ -15,7 +15,6 @@ process VERSIONS {
     
     echo "databases:" >> software_versions.yml
     echo "  reference: \$(basename ${params.reference})" >> software_versions.yml
-    echo "  mutation_db: \$(basename ${params.mutation_db})" >> software_versions.yml
     echo "  repetitive_regions: \$(basename ${params.repetitive_regions})" >> software_versions.yml
     
     echo "processing_settings:" >> software_versions.yml
