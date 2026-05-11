@@ -8,6 +8,7 @@ process CREATE_FHIR {
     input:
     path(annotation)
     path(lineage_files)
+    path(org_metadata)
 
     output:
     path "*.fhir.json", emit: fhir_output
@@ -33,7 +34,8 @@ process CREATE_FHIR {
     python3 $baseDir/scripts/annotated_to_fhir.py \\
         --input ${sample_id}.vcf \\
         --output ${sample_id}.fhir.json \\
-        --lineage_dir lineage_data/
+        --lineage_dir lineage_data/ \\
+        --organization_metadata ${org_metadata}
 
     cat <<-END_VERSIONS > versions.yml
     "fhir_converter":
@@ -53,10 +55,11 @@ workflow FHIR {
     take:
     annotated_ch
     lineage_ch
+    org_metadata_ch
 
     main:
     
-    CREATE_FHIR(annotated_ch, lineage_ch)
+    CREATE_FHIR(annotated_ch, lineage_ch, org_metadata_ch)
 
     emit:
     fhir_output = CREATE_FHIR.out.fhir_output
