@@ -18,7 +18,7 @@ process VALIDATE_FHIR {
     """
     java -jar ${validator} \\
         ${fhir_file} \\
-        -version 3.0.0 \\
+        -version 4.0.1 \\
         -ig hl7.fhir.uv.genomics-reporting#current \\
         > ${fhir_file.baseName}.validation.txt 2>&1 || echo "Validation warnings/errors: ${fhir_file.baseName}.validation.txt" >&2
     """
