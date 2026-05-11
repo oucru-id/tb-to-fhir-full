@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 
 log.info """
     Mycobacterium tuberculosis Mutation Analysis Pipeline (v${params.version})
-    Developed by SPHERES-OUCRU ID
+    Developed by SPHERES OUCRU-ID
     Documentation: https://tb-pipeline-docs.readthedocs.io/
 """
 
