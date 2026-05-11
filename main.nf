@@ -63,20 +63,27 @@ workflow {
     
     sample_reports = GENERATE_SAMPLE_REPORTS(all_annotated, lineage_files)
     
-    fhir_out = FHIR(all_annotated, lineage_files) 
-    
-    clinical_metadata_ch = Channel.fromPath(params.clinical_metadata, checkIfExists: false)
-        .first() 
+    patient_metadata_ch = Channel.fromPath(params.patient_metadata, checkIfExists: false)
+        .first()
+
+    org_metadata_ch = Channel.fromPath(params.organization_metadata, checkIfExists: false)
+        .first()
+
+    practitioner_metadata_ch = Channel.fromPath(params.practitioner_metadata, checkIfExists: false)
+        .first()
+
+    fhir_out = FHIR(all_annotated, lineage_files, org_metadata_ch)
 
     merged_clinical_out = MERGE_CLINICAL_DATA(
-        fhir_out.fhir_output, 
-        clinical_metadata_ch
+        fhir_out.fhir_output,
+        patient_metadata_ch,
+        org_metadata_ch,
+        practitioner_metadata_ch
     )
     
     validation_out = VALIDATE(merged_clinical_out.merged_fhir)
     
-    // Optional: Upload validated FHIR
-    //upload_out = UPLOAD_FHIR(validation_out.validated_fhir)
+    upload_out = UPLOAD_FHIR(validation_out.validated_fhir)
 
     VERSIONS()
 }
