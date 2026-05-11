@@ -66,3 +66,45 @@ def get_clinical_value(metadata, field, default='Unknown'):
             return str(metadata[f]).strip()
     
     return default
+
+
+def load_organization_metadata(file_path):
+    if not os.path.exists(file_path):
+        print(f"Organization metadata file not found: {file_path}")
+        return {}
+    try:
+        if file_path.endswith('.xlsx'):
+            df = pd.read_excel(file_path)
+        elif file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            print(f"Unsupported file format: {file_path}")
+            return {}
+        if df.empty:
+            return {}
+        row = df.iloc[0].to_dict()
+        return {k: (str(v).strip() if pd.notna(v) else '') for k, v in row.items()}
+    except Exception as e:
+        print(f"Error loading organization metadata: {e}")
+        return {}
+
+
+def load_practitioner_metadata(file_path):
+    if not os.path.exists(file_path):
+        print(f"Practitioner metadata file not found: {file_path}")
+        return {}
+    try:
+        if file_path.endswith('.xlsx'):
+            df = pd.read_excel(file_path)
+        elif file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            print(f"Unsupported file format: {file_path}")
+            return {}
+        if df.empty:
+            return {}
+        row = df.iloc[0].to_dict()
+        return {k: (str(v).strip() if pd.notna(v) else '') for k, v in row.items()}
+    except Exception as e:
+        print(f"Error loading practitioner metadata: {e}")
+        return {}
