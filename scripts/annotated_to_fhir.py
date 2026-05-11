@@ -10,6 +10,7 @@ from collections import defaultdict
 import sys
 import uuid
 import re
+from clinical_metadata_parser import load_organization_metadata
 
 def load_lineage_data(lineage_dir):
     lineage_data = {}
@@ -274,7 +275,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--input', required=True, help='Path to VCF file')
 parser.add_argument('--output', required=True, help='Path to output FHIR JSON')
 parser.add_argument('--lineage_dir', help='Directory containing lineage JSON files')
+parser.add_argument('--organization_metadata', default='', help='Path to organization_metadata CSV/Excel file')
 args = parser.parse_args()
+
+org_data = {}
+if args.organization_metadata and os.path.exists(args.organization_metadata):
+    org_data = load_organization_metadata(args.organization_metadata)
+org_id = org_data.get('org_id', '100007732') if org_data else '100007732'
 
 lineage_data = {}
 if args.lineage_dir:
@@ -544,7 +551,7 @@ try:
                 "subject": {"reference": f"Patient/{file_sample_id}-patient"},
                 "specimen": {"reference": f"Specimen/{file_sample_id}-specimen"},
                 "effectiveDateTime": datetime.now(timezone.utc).isoformat(),
-                "performer": [{"reference": "Organization/100007732"}],
+                "performer": [{"reference": f"Organization/{org_id}"}],
                 "component": components
             }
             
@@ -618,7 +625,7 @@ try:
         "subject": {"reference": f"Patient/{primary_sample_id}-patient"},
         "specimen": {"reference": f"Specimen/{primary_sample_id}-specimen"},
         "effectiveDateTime": datetime.now(timezone.utc).isoformat(),
-        "performer": [{"reference": "Organization/100007732"}],
+        "performer": [{"reference": f"Organization/{org_id}"}],
         "component": panel_components
     }
 
@@ -677,7 +684,7 @@ try:
                 "subject": {"reference": f"Patient/{primary_sample_id}-patient"},
                 "specimen": {"reference": f"Specimen/{primary_sample_id}-specimen"},
                 "effectiveDateTime": datetime.now(timezone.utc).isoformat(),
-                "performer": [{"reference": "Organization/100007732"}]
+                "performer": [{"reference": f"Organization/{org_id}"}]
             }
             
             bundles[primary_sample_id].append({
