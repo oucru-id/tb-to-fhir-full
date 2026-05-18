@@ -2,12 +2,6 @@
 
 nextflow.enable.dsl = 2
 
-log.info """
-    Mycobacterium tuberculosis Mutation Analysis Pipeline (v${params.version})
-    Developed by SPHERES OUCRU-ID
-    Documentation: https://tb-pipeline-docs.readthedocs.io/
-"""
-
 include { ILLUMINA }              from './workflows/illumina.nf'
 include { NANOPORE }              from './workflows/nanopore.nf'
 include { VCF_PROCESSING }        from './workflows/vcf.nf'  
@@ -21,6 +15,13 @@ include { UPLOAD_FHIR }           from './workflows/upload_fhir.nf'
 include { VERSIONS }              from './workflows/utils.nf'
 
 workflow {
+    
+log.info """
+    Mycobacterium tuberculosis Mutation Analysis Pipeline (v${params.version})
+    Developed by SPHERES OUCRU-ID
+    Documentation: https://tb-pipeline-docs.readthedocs.io/
+"""
+
     illumina_reads_ch = Channel
         .fromFilePairs("${params.reads_dir}/*_{1,2}_illumina.fastq.gz")
         .map { id, files -> tuple(id, files) }  
