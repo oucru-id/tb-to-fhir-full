@@ -21,7 +21,7 @@ def create_patient_resource(sample_id, clinical_data=None, org_data=None):
         raise ValueError(f"Clinical data is required for sample {sample_id}")
 
     org_data = org_data or {}
-    org_id = org_data.get('org_id', '100007730')
+    org_id = org_data.get('org_id')
 
     family_name = get_clinical_value(clinical_data, 'family_name')
     given_name = get_clinical_value(clinical_data, 'given_name')
