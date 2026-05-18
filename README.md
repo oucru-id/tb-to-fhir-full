@@ -51,7 +51,6 @@ tb-to-fhir-full
 │   ├── merge_clinical_fhir.py          # FHIR genomics + clinical data merger
 │   ├── upload_fhir.py                  # FHIR uploader
 │   ├── get_access_token.py             # Standalone token fetcher
-│   ├── get_patient_by_nik.py           # Patient lookup by NIK
 │   └── get_versions.py                 # Software version collector
 ├── data/
 │   ├── NGS/                            # Input FASTQ files
