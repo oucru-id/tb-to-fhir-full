@@ -62,7 +62,8 @@ tb-to-fhir-full
 │   ├── patient_clinical_metadata.csv   # Patient metadata
 │   ├── organization_metadata.csv       # Organization metadata
 │   └── practitioner_metadata.csv       # Practitioner metadata
-
+└── tools/
+    └── fhir-validator.jar              # HL7 FHIR validator
 ```
 
 ## Input Data
