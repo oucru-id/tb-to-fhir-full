@@ -1,6 +1,6 @@
 # TB Genomics Mutation Analysis to FHIR Genomics Pipeline (TBtoFHIR)
 
-A platform-agnostic Nextflow pipeline for *Mycobacterium tuberculosis* genomic analysis from raw sequencing data or pre-annotated VCFs, producing HL7 FHIR R4 genomics bundles. [Full documentation](https://tb-pipeline-docs.readthedocs.io/)
+A platform-agnostic Nextflow pipeline for *Mycobacterium tuberculosis* genomic analysis from raw sequencing data or pre-annotated VCFs, producing HL7 FHIR R4 genomics bundles (IG v3.0.0). [Full documentation](https://tb-pipeline-docs.readthedocs.io/)
 
 ## Key Features
 
