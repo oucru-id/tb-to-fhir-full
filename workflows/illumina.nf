@@ -191,7 +191,7 @@ workflow ILLUMINA {
     
     trimmed = trimmomatic(reads)
     
-    aligned = bwa_mem2(trimmed.trimmed_reads.map { id, reads -> tuple(id, reads, file(params.reference)) })
+    aligned = bwa_mem2(trimmed.trimmed_reads.map { id, r -> tuple(id, r, file(params.reference)) })
         
     variants = gatk(aligned.map { id, bam -> tuple(id, bam, file(params.reference)) })
     filtered = filter_variants(variants)
