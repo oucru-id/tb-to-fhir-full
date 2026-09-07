@@ -28,6 +28,14 @@ def extract_sample_id(filename):
     
     return core_id
 
+def _split_info(value):
+    """Split a Number=. INFO value into its elements."""
+    if not value or value is True or str(value).lower() == 'unknown':
+        return []
+    parts = [v.strip() for v in str(value).split(',')]
+    return [p for p in parts if p and p.lower() != 'unknown']
+
+
 def parse_vcf_info(info_str):
     info_dict = {}
     if info_str != '.':
@@ -96,19 +104,42 @@ def parse_annotated_vcf(vcf_file):
                         debug_print(f"  GENE: {info.get('GENE', 'NOT FOUND')}")
                         debug_print(f"  DRUG: {info.get('DRUG', 'NOT FOUND')}")
                     
+                    drugs = _split_info(info.get('DRUG'))
+                    grades = _split_info(info.get('WHO_CLASSIFICATION'))
+                    variant_ids = _split_info(info.get('VARIANT_ID'))
+
+                    drug_pairs = []
+                    if drugs and len(grades) == len(drugs):
+                        for i, drug in enumerate(drugs):
+                            drug_pairs.append({
+                                'drug': drug,
+                                'who_classification': grades[i],
+                                'variant_id': variant_ids[i] if i < len(variant_ids) else (
+                                    variant_ids[0] if len(variant_ids) == 1 else 'unknown'),
+                            })
+                    elif drugs:
+                        debug_print(f"WARNING {chrom}:{pos} {ref}>{alt}: {len(drugs)} drugs but "
+                                    f"{len(grades)} grades -- annotation table needs rebuilding "
+                                    f"(scripts/rebuild_annotation_table.sh)")
+                        for i, drug in enumerate(drugs):
+                            drug_pairs.append({
+                                'drug': drug,
+                                'who_classification': grades[0] if grades else 'unknown',
+                                'variant_id': variant_ids[0] if variant_ids else 'unknown',
+                                'ambiguous': True,
+                            })
+
                     variant_data = {
                         'chrom': chrom,
                         'pos': pos,
                         'ref': ref,
                         'alt': alt,
                         'gene': info.get('GENE', 'unknown'),
-                        'drug': info.get('DRUG', 'unknown'),
                         'effect': info.get('EFFECT', 'unknown'),
-                        'who_classification': info.get('WHO_CLASSIFICATION', 'unknown'),
-                        'variant_id': info.get('VARIANT_ID', 'unknown'),
-                        'genome_position': info.get('GENOME_POSITION', 'unknown')
+                        'genome_position': info.get('GENOME_POSITION', 'unknown'),
+                        'drug_pairs': drug_pairs,
                     }
-                    
+
                     variants.append(variant_data)
                         
     except Exception as e:
@@ -121,18 +152,34 @@ def generate_summary_report(sample_id, variants, lineage_info, output_dir):
     
     resistance_variants = []
     interim_variants = []
+    uncertain_variants = []
     not_assoc_variants = []
-    
+    ambiguous_pairs = 0
+    graded_pair_count = 0
+
     for variant in variants:
-        who_class = variant['who_classification']
-        if who_class != 'unknown':        
-            if 'Assoc w R' in who_class and 'Interim' not in who_class:
-                resistance_variants.append(variant)
-            elif 'Assoc w R - Interim' in who_class:
-                interim_variants.append(variant)
+        for pair in variant.get('drug_pairs', []):
+            who_class = pair.get('who_classification', 'unknown')
+            if who_class == 'unknown':
+                continue
+
+            graded_pair_count += 1
+            if pair.get('ambiguous'):
+                ambiguous_pairs += 1
+
+            finding = dict(variant)
+            finding.update(pair)
+
+            normalized = who_class.strip().lower()
+            if normalized == 'assoc w r':
+                resistance_variants.append(finding)
+            elif normalized == 'assoc w r - interim':
+                interim_variants.append(finding)
+            elif normalized == 'uncertain significance':
+                uncertain_variants.append(finding)
             else:
-                not_assoc_variants.append(variant)
-    
+                not_assoc_variants.append(finding)
+
     with open(output_file, 'w') as f:
         f.write("="*80 + "\n")
         f.write(f"TB GENOMIC ANALYSIS SUMMARY REPORT - {sample_id}\n")
@@ -153,10 +200,18 @@ def generate_summary_report(sample_id, variants, lineage_info, output_dir):
         f.write(f"\nRESISTANCE ANALYSIS:\n")
         f.write("=" * 50 + "\n")
         f.write(f"Total variants analyzed: {len(variants)}\n")
-        f.write(f"Confirmed resistance: {len(resistance_variants)}\n")
-        f.write(f"Interim resistance: {len(interim_variants)}\n")
-        f.write(f"Not assoc w R: {len(not_assoc_variants)}\n\n")
-        
+        f.write(f"Graded variant-drug pairs: {graded_pair_count}\n")
+        f.write(f"Confirmed resistance (WHO group 1): {len(resistance_variants)}\n")
+        f.write(f"Interim resistance (WHO group 2): {len(interim_variants)}\n")
+        f.write(f"Uncertain significance (WHO group 3): {len(uncertain_variants)}\n")
+        f.write(f"Not assoc w R (WHO groups 4-5): {len(not_assoc_variants)}\n\n")
+
+        if ambiguous_pairs:
+            f.write("WARNING: the annotation table has one row per (variant, drug) pair, so\n")
+            f.write(f"         {ambiguous_pairs} pair(s) share a single collapsed WHO grade and\n")
+            f.write("         their per-drug association is not reliable. Rebuild the table\n")
+            f.write("         with scripts/rebuild_annotation_table.sh.\n\n")
+
 
         if resistance_variants:
             f.write("CONFIRMED RESISTANCE VARIANTS (WHO: Assoc w R):\n")
@@ -214,28 +269,55 @@ def generate_summary_report(sample_id, variants, lineage_info, output_dir):
                     if i < len(drug_variants):
                         f.write("  " + "-" * 30 + "\n")
         
+        if uncertain_variants:
+            f.write(f"\nVARIANTS OF UNCERTAIN SIGNIFICANCE (WHO group 3):\n")
+            f.write("-" * 60 + "\n")
+            f.write("WHO group 3 is NOT a susceptible result. These variants have insufficient\n")
+            f.write("or conflicting evidence and may still be associated with resistance.\n")
+
+            drug_groups = {}
+            for variant in uncertain_variants:
+                drug_groups.setdefault(variant['drug'], []).append(variant)
+
+            for drug, drug_variants in sorted(drug_groups.items()):
+                f.write(f"\nDRUG: {drug.upper()}\n")
+                f.write("-" * 40 + "\n")
+                for i, variant in enumerate(drug_variants, 1):
+                    f.write(f"Variant {i}: {variant['gene']} "
+                            f"{variant.get('variant_id', 'unknown')} "
+                            f"at {variant['pos']} ({variant['ref']} -> {variant['alt']})\n")
+
         f.write(f"\nCLINICAL SUMMARY:\n")
         f.write("=" * 30 + "\n")
-        
+
         if lineage_info:
             lineage = lineage_info.get('lineage', 'Unknown')
             family = lineage_info.get('family', 'Unknown')
             f.write(f"Lineage: {lineage} ({family})\n")
-        
-        if resistance_variants:
-            f.write(f"Drug resistance: DETECTED ({len(resistance_variants)} variants)\n")
-            resistant_drugs = set(v['drug'] for v in resistance_variants if v['drug'] != 'unknown')
+
+        if resistance_variants or interim_variants:
+            total = len(resistance_variants) + len(interim_variants)
+            f.write(f"Drug resistance: DETECTED ({total} variant-drug findings)\n")
+            resistant_drugs = set(v['drug'] for v in (resistance_variants + interim_variants)
+                                  if v['drug'] != 'unknown')
             if resistant_drugs:
                 f.write(f"Resistant to: {', '.join(sorted(resistant_drugs))}\n")
             f.write(f"Clinical action: REQUIRED\n")
         else:
-            f.write(f"Drug resistance: NOT DETECTED\n")
-            f.write(f"Clinical action: Standard treatment\n")
-        
+            f.write(f"Drug resistance: NO RESISTANCE-ASSOCIATED MUTATION DETECTED\n")
+            f.write(f"Note: this is not a susceptibility result. Susceptibility can only be\n")
+            f.write(f"      inferred where coverage of the relevant resistance loci was\n")
+            f.write(f"      confirmed; see the susceptibility panel for per-drug assessability.\n")
+
+        if uncertain_variants:
+            uncertain_drugs = sorted(set(v['drug'] for v in uncertain_variants
+                                         if v['drug'] != 'unknown'))
+            f.write(f"Uncertain-significance findings for: {', '.join(uncertain_drugs)}\n")
+
         genes_with_resistance = set(v['gene'] for v in resistance_variants if v['gene'] != 'unknown')
         if genes_with_resistance:
             f.write(f"Genes with resistance: {', '.join(sorted(genes_with_resistance))}\n")
-        
+
         f.write(f"\n" + "="*80 + "\n")
         f.write("END OF SUMMARY REPORT\n")
         f.write("="*80 + "\n")
