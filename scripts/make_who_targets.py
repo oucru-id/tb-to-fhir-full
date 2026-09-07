@@ -34,14 +34,11 @@ def load_gene_spans(annotation_table):
             if entry is None:
                 spans[gene] = {
                     'chrom': chrom,
-                    'start': position,
-                    'end': end,
+                    'intervals': [],
                     'drugs': set(),
                 }
                 entry = spans[gene]
-            else:
-                entry['start'] = min(entry['start'], position)
-                entry['end'] = max(entry['end'], end)
+            entry['intervals'].append((position, end))
 
             for one_drug in drug.split(','):
                 one_drug = one_drug.strip()
@@ -49,6 +46,26 @@ def load_gene_spans(annotation_table):
                     entry['drugs'].add(one_drug)
 
     return spans
+
+
+def load_contig_lengths(fai_path):
+
+    lengths = {}
+    if not fai_path:
+        return lengths
+    try:
+        with open(fai_path) as handle:
+            for line in handle:
+                fields = line.split('\t')
+                if len(fields) >= 2:
+                    try:
+                        lengths[fields[0]] = int(fields[1])
+                    except ValueError:
+                        continue
+    except FileNotFoundError:
+        print(f"Warning: reference index not found: {fai_path}; "
+              f"targets will not be clamped to contig bounds", file=sys.stderr)
+    return lengths
 
 
 def load_mask(path):
@@ -108,6 +125,14 @@ def main():
     parser.add_argument('--promoter-padding', type=int, default=200,
                         help='Bases to extend upstream/downstream of each gene span '
                              '(default: 200, to capture promoter variants)')
+    parser.add_argument('--reference-fai', default=None,
+                        help='samtools .fai index for the reference. Used to clamp targets to '
+                             'contig bounds; without it, padding near a contig end can produce '
+                             'an interval that makes mosdepth abort')
+    parser.add_argument('--max-gap', type=int, default=5000,
+                        help='Variant positions for one gene separated by more than this '
+                             'are treated as separate loci (default: 5000). Prevents a gene '
+                             'spanning the circular origin from yielding one genome-wide span')
     args = parser.parse_args()
 
     spans = load_gene_spans(args.annotation_table)
@@ -116,25 +141,40 @@ def main():
         sys.exit(1)
 
     mask = load_mask(args.repetitive_regions)
+    contig_lengths = load_contig_lengths(args.reference_fai)
 
     rows = []
     dropped_entirely = []
 
     for gene, entry in spans.items():
         chrom = entry['chrom']
-        start = max(0, entry['start'] - 1 - args.promoter_padding)
-        end = entry['end'] + args.promoter_padding
-
         drugs = ';'.join(sorted(entry['drugs'])) or 'unknown'
-        pieces = subtract(chrom, start, end, mask)
 
-        if not pieces:
+        clusters = []
+        for start, end in sorted(entry['intervals']):
+            if clusters and start - clusters[-1][1] <= args.max_gap:
+                clusters[-1][1] = max(clusters[-1][1], end)
+            else:
+                clusters.append([start, end])
+
+        contig_length = contig_lengths.get(chrom)
+
+        survived = False
+        for c_start, c_end in clusters:
+            padded_start = max(0, c_start - 1 - args.promoter_padding)
+            padded_end = c_end + args.promoter_padding
+            if contig_length is not None:
+                padded_end = min(padded_end, contig_length)
+                if padded_start >= contig_length:
+                    continue
+
+            for p_start, p_end in subtract(chrom, padded_start, padded_end, mask):
+                if p_end > p_start:
+                    rows.append((chrom, p_start, p_end, gene, drugs))
+                    survived = True
+
+        if not survived:
             dropped_entirely.append(gene)
-            continue
-
-        for p_start, p_end in pieces:
-            if p_end > p_start:
-                rows.append((chrom, p_start, p_end, gene, drugs))
 
     rows.sort(key=lambda r: (r[0], r[1], r[2]))
 
