@@ -117,8 +117,8 @@ process annotate {
     path "${sample_id}.annotated_variants.vcf.gz"
 
     script:
-    def annotation_table = "${baseDir}/data/2026-05-11_annotation_table.tsv.gz"
-    def annotation_header = "${baseDir}/data/2026-05-11_annotations_header.txt"  
+    def annotation_table = "${params.annotation_table}"
+    def annotation_header = "${params.annotation_header}"
     """
     bcftools annotate \
         -a ${annotation_table} \
@@ -195,10 +195,11 @@ workflow ILLUMINA {
         
     variants = gatk(aligned.map { id, bam -> tuple(id, bam, file(params.reference)) })
     filtered = filter_variants(variants)
-    annotated = annotate(filtered)  
+    annotated = annotate(filtered)
 
     emit:
     qc_report = qc.qc_report
     annotated = annotated
     filtered = filtered
+    bam = aligned
 }
