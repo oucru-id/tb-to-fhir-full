@@ -8,6 +8,7 @@ process MAKE_WHO_TARGETS {
     input:
     path annotation_table
     path repetitive_regions
+    path reference
 
     output:
     path "who_targets.bed", emit: targets
@@ -16,10 +17,15 @@ process MAKE_WHO_TARGETS {
     def padding = params.promoter_padding ?: 200
     def mask_arg = repetitive_regions.name != 'NO_FILE' ? "--repetitive-regions ${repetitive_regions}" : ''
     """
+    if [ ! -f ${reference}.fai ]; then
+        samtools faidx ${reference}
+    fi
+
     python3 ${baseDir}/scripts/make_who_targets.py \\
         --annotation-table ${annotation_table} \\
         --output who_targets.bed \\
         --promoter-padding ${padding} \\
+        --reference-fai ${reference}.fai \\
         ${mask_arg}
     """
 
@@ -110,8 +116,9 @@ workflow COVERAGE {
         .fromPath(params.repetitive_regions, checkIfExists: false)
         .ifEmpty(file("${baseDir}/data/NO_FILE"))
         .first()
+    reference_ch = Channel.fromPath(params.reference, checkIfExists: true).first()
 
-    targets = MAKE_WHO_TARGETS(annotation_table_ch, repetitive_ch)
+    targets = MAKE_WHO_TARGETS(annotation_table_ch, repetitive_ch, reference_ch)
 
     from_bam = MOSDEPTH(bam_ch, targets.targets)
     from_vcf = COVERAGE_NOT_ASSESSED(vcf_only_ch)
