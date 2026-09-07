@@ -8,6 +8,7 @@ process CREATE_FHIR {
     input:
     path(annotation)
     path(lineage_files)
+    path(coverage_files)
     path(org_metadata)
 
     output:
@@ -16,6 +17,8 @@ process CREATE_FHIR {
 
     script:
     def sample_id = annotation.simpleName.replaceAll(/\.annotated_variants$/, '')
+    def min_depth = params.coverage_min_depth ?: 10
+    def min_breadth = params.coverage_min_breadth ?: 0.95
     """
     if [[ "${annotation}" == *.gz ]]; then
         gunzip -c ${annotation} > ${sample_id}.vcf
@@ -23,11 +26,17 @@ process CREATE_FHIR {
         cp ${annotation} ${sample_id}.vcf
     fi
 
-    mkdir -p lineage_data
-    
-    for file in ${lineage_files}; do
+    mkdir -p lineage_data coverage_data
+
+    for file in *.lineage.json; do
         if [ -f "\$file" ]; then
             cp "\$file" lineage_data/
+        fi
+    done
+
+    for file in *.coverage.json; do
+        if [ -f "\$file" ]; then
+            cp "\$file" coverage_data/
         fi
     done
 
@@ -35,6 +44,10 @@ process CREATE_FHIR {
         --input ${sample_id}.vcf \\
         --output ${sample_id}.fhir.json \\
         --lineage_dir lineage_data/ \\
+        --coverage_dir coverage_data/ \\
+        --pipeline_version '${params.version}' \\
+        --coverage_min_depth ${min_depth} \\
+        --coverage_min_breadth ${min_breadth} \\
         --organization_metadata ${org_metadata}
 
     cat <<-END_VERSIONS > versions.yml
@@ -55,11 +68,12 @@ workflow FHIR {
     take:
     annotated_ch
     lineage_ch
+    coverage_ch
     org_metadata_ch
 
     main:
-    
-    CREATE_FHIR(annotated_ch, lineage_ch, org_metadata_ch)
+
+    CREATE_FHIR(annotated_ch, lineage_ch, coverage_ch, org_metadata_ch)
 
     emit:
     fhir_output = CREATE_FHIR.out.fhir_output
