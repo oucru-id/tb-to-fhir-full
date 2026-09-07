@@ -109,8 +109,8 @@ process annotate {
     path "${sample_id}.annotated_variants.vcf.gz"
 
     script:
-    def annotation_table = "${baseDir}/data/2026-05-11_annotation_table.tsv.gz"
-    def annotation_header = "${baseDir}/data/2026-05-11_annotations_header.txt"  
+    def annotation_table = "${params.annotation_table}"
+    def annotation_header = "${params.annotation_header}"
     """
     bcftools annotate \\
         -a ${annotation_table} \\
