@@ -428,46 +428,61 @@ def create_practitioner_role_resource(practitioner_data=None, org_data=None):
     }
     return resource
 
+def _drug_group_for(drug_display):
+    """Map a panel component display name onto the group used by WHO definitions."""
+    if 'rifampicin' in drug_display or 'rifampin' in drug_display:
+        return 'rifampicin'
+    if 'isoniazid' in drug_display:
+        return 'isoniazid'
+    if 'ethambutol' in drug_display:
+        return 'ethambutol'
+    if 'pyrazinamide' in drug_display:
+        return 'pyrazinamide'
+    if 'streptomycin' in drug_display:
+        return 'streptomycin'
+    if 'ethionamide' in drug_display:
+        return 'ethionamide'
+    if any(fq in drug_display for fq in ['levofloxacin', 'moxifloxacin', 'ofloxacin', 'ciprofloxacin']):
+        return 'fluoroquinolone'
+    if any(sli in drug_display for sli in ['amikacin', 'kanamycin', 'capreomycin']):
+        return 'second_line_injectable'
+    if any(ga in drug_display for ga in ['bedaquiline', 'linezolid']):
+        return 'group_a'
+    return drug_display
+
+
 def classify_drug_resistance(observations):
+
     resistant_drugs_groups = set()
+    indeterminate_groups = set()
+    susceptible_groups = set()
     detected_drugs = set()
+    indeterminate_drugs = set()
     detected_genes = set()
-    
+
     for obs in observations:
         codes = obs.get('code', {}).get('coding', [])
         is_panel = any(c.get('code') == '89486-5' for c in codes)
-        
+
         if is_panel:
             components = obs.get('component', [])
             for comp in components:
                 value_coding = comp.get('valueCodeableConcept', {}).get('coding', [])
-                is_resistant = any(vc.get('code') == 'LA6676-6' for vc in value_coding)
-                
-                if is_resistant:
-                    drug_display = comp.get('code', {}).get('coding', [{}])[0].get('display', '').lower()
-                    
-                    detected_drugs.add(drug_display.replace('[susceptibility]', '').strip())
-                    
-                    if 'rifampicin' in drug_display or 'rifampin' in drug_display:
-                        resistant_drugs_groups.add('rifampicin')
-                    elif 'isoniazid' in drug_display:
-                        resistant_drugs_groups.add('isoniazid')
-                    elif 'ethambutol' in drug_display:
-                        resistant_drugs_groups.add('ethambutol')
-                    elif 'pyrazinamide' in drug_display:
-                        resistant_drugs_groups.add('pyrazinamide')
-                    elif 'streptomycin' in drug_display:
-                        resistant_drugs_groups.add('streptomycin')
-                    elif 'ethionamide' in drug_display:
-                        resistant_drugs_groups.add('ethionamide')
-                    elif any(fq in drug_display for fq in ['levofloxacin', 'moxifloxacin', 'ofloxacin', 'ciprofloxacin']):
-                        resistant_drugs_groups.add('fluoroquinolone')
-                    elif any(sli in drug_display for sli in ['amikacin', 'kanamycin', 'capreomycin']):
-                        resistant_drugs_groups.add('second_line_injectable')
-                    elif any(ga in drug_display for ga in ['bedaquiline', 'linezolid']):
-                        resistant_drugs_groups.add('group_a')
-                    else:
-                        resistant_drugs_groups.add(drug_display)
+                value_codes = {vc.get('code') for vc in value_coding}
+
+                drug_display = comp.get('code', {}).get('coding', [{}])[0].get('display', '').lower()
+                drug_name = re.sub(r'\s*\[susceptibility\]\s*', ' ', drug_display)
+                drug_name = re.sub(r'\s*by genotype method\s*', ' ', drug_name).strip()
+                group = _drug_group_for(drug_display)
+
+                if 'LA6676-6' in value_codes:
+                    detected_drugs.add(drug_name)
+                    resistant_drugs_groups.add(group)
+                elif 'LA24225-7' in value_codes:
+                    susceptible_groups.add(group)
+                else:
+                    indeterminate_drugs.add(drug_name)
+                    indeterminate_groups.add(group)
 
     for obs in observations:
         codes = obs.get('code', {}).get('coding', [])
@@ -475,37 +490,69 @@ def classify_drug_resistance(observations):
         
         if is_variant:
             components = obs.get('component', [])
-            
-            significance = ""
+
             current_gene = ""
-            
+            has_resistance_grade = False
+
             for component in components:
                 code_display = component.get('code', {}).get('coding', [{}])[0].get('display', '').lower()
-                
+
                 if 'gene studied' in code_display:
                     current_gene = component.get('valueCodeableConcept', {}).get('text', '')
-                
+
                 if 'genetic variation clinical significance' in code_display:
                     significance = component.get('valueCodeableConcept', {}).get('text', '')
+                    if significance and "Assoc w R" in significance:
+                        has_resistance_grade = True
 
-            if current_gene and significance and "Assoc w R" in significance:
+            if current_gene and has_resistance_grade:
                 detected_genes.add(current_gene)
     
     has_rif = 'rifampicin' in resistant_drugs_groups
     has_inh = 'isoniazid' in resistant_drugs_groups
     has_fq = 'fluoroquinolone' in resistant_drugs_groups
     has_group_a = 'group_a' in resistant_drugs_groups
-    
+
+    rif_indeterminate = 'rifampicin' in indeterminate_groups
+    inh_indeterminate = 'isoniazid' in indeterminate_groups
+
     is_mdr = has_rif and has_inh
     is_rr = has_rif
-    
-    classification = "Sensitive"
-    description = "No resistance mutations detected"
 
     if not resistant_drugs_groups:
-        classification = "Sensitive"
-        description = "No resistance mutations detected"
-    elif (is_mdr or is_rr) and has_fq and has_group_a:
+        if not susceptible_groups:
+            classification = "Indeterminate"
+            description = ("No resistance-associated mutation detected, but no drug could be "
+                           "assessed: coverage of the resistance loci was not confirmed. This "
+                           "is NOT a susceptible result")
+        elif indeterminate_groups:
+            classification = "No resistance detected - partial"
+            description = (f"No resistance-associated mutation detected in "
+                           f"{len(susceptible_groups)} assessable drug group(s); "
+                           f"{len(indeterminate_groups)} could not be assessed "
+                           f"({', '.join(sorted(indeterminate_drugs))})")
+        else:
+            classification = "No resistance detected"
+            description = ("No resistance-associated mutation detected across all assessed "
+                           "drugs, with adequate coverage of the resistance loci")
+
+        return (classification, description,
+                sorted(list(detected_genes)), sorted(list(detected_drugs)),
+                sorted(list(indeterminate_drugs)))
+
+    if rif_indeterminate and not has_rif:
+        classification = "Drug-resistant - rifampicin not assessable"
+        description = (f"Resistance detected to: {', '.join(sorted(resistant_drugs_groups))}. "
+                       f"Rifampicin could not be assessed, so RR/MDR/pre-XDR/XDR "
+                       f"classification cannot be determined")
+        return (classification, description,
+                sorted(list(detected_genes)), sorted(list(detected_drugs)),
+                sorted(list(indeterminate_drugs)))
+
+    classification = "Drug-resistant"
+    description = f"Resistance to: {', '.join(sorted(resistant_drugs_groups))}"
+
+    if (is_mdr or is_rr) and has_fq and has_group_a:
         classification = "XDR-TB"
         description = "Extensively drug-resistant tuberculosis (MDR/RR + FQ + Group A)"
     elif (is_mdr or is_rr) and has_fq:
@@ -516,10 +563,14 @@ def classify_drug_resistance(observations):
         description = "Multidrug-resistant tuberculosis"
     elif has_rif and not has_inh:
         classification = "RR-TB"
-        description = "Rifampicin-resistant tuberculosis"
+        if inh_indeterminate:
+            description = ("Rifampicin-resistant tuberculosis. Isoniazid could not be "
+                           "assessed, so MDR-TB cannot be excluded")
+        else:
+            description = "Rifampicin-resistant tuberculosis"
     elif has_inh and not has_rif:
         classification = "HR-TB"
-        description = "Isoniazid-resistant tuberculosis"
+        description = "Isoniazid-resistant, rifampicin-susceptible tuberculosis"
     elif len(resistant_drugs_groups) == 1:
         if 'streptomycin' in resistant_drugs_groups:
             classification = "Streptomycin-resistant TB"
@@ -550,7 +601,9 @@ def classify_drug_resistance(observations):
         classification = "Drug-resistant"
         description = f"Resistance to: {', '.join(sorted(resistant_drugs_groups))}"
 
-    return classification, description, sorted(list(detected_genes)), sorted(list(detected_drugs))
+    return (classification, description,
+            sorted(list(detected_genes)), sorted(list(detected_drugs)),
+            sorted(list(indeterminate_drugs)))
 
 def extract_lineage_info(observations):
     for obs in observations:
@@ -572,10 +625,17 @@ def extract_lineage_info(observations):
 
 def get_resistance_conclusion_coding(resistance_class):
     coding_map = {
-        "Sensitive": {
+        "No resistance detected": {
            "system": "https://terminology.kemkes.go.id/CodeSystem/episodeofcare-type",
            "code": "TB-SO",
            "display": "Tuberkulosis Sensitif Obat"
+        },
+        "No resistance detected - partial": None,
+        "Indeterminate": None,
+        "Drug-resistant - rifampicin not assessable": {
+            "system": "http://snomed.info/sct",
+            "code": "413556004",
+            "display": "Antibiotic resistant tuberculosis"
         },
         "RR-TB": {
             "system": "http://snomed.info/sct",
@@ -638,44 +698,40 @@ def get_resistance_conclusion_coding(resistance_class):
 
 def create_diagnostic_report(sample_id, observations, clinical_data=None, org_data=None, practitioner_data=None):
     
-    resistance_class, resistance_description, resistant_genes, resistant_drugs = classify_drug_resistance(observations)
-    
+    (resistance_class, resistance_description, resistant_genes,
+     resistant_drugs, indeterminate_drugs) = classify_drug_resistance(observations)
+
     lineage_info = extract_lineage_info(observations)
-    
-    conclusion_parts = []
-    
-    if resistance_class == "Sensitive":
-        conclusion_parts.append(resistance_class)
-        conclusion_parts.append("No resistance-associated gene detected")
-        conclusion_parts.append("No drug resistance detected")
-    else:
-        conclusion_parts.append(f"{resistance_class} ({resistance_description})")
-        if resistant_genes:
-            conclusion_parts.append(f"Detected resistance genes: {', '.join(resistant_genes)}")
-        if resistant_drugs:
-            conclusion_parts.append(f"Detected drug resistance: {', '.join(resistant_drugs)}")
-    
+
+    conclusion_parts = [f"{resistance_class} ({resistance_description})"]
+
+    if resistant_genes:
+        conclusion_parts.append(f"Detected resistance genes: {', '.join(resistant_genes)}")
+    if resistant_drugs:
+        conclusion_parts.append(f"Detected drug resistance: {', '.join(resistant_drugs)}")
+
+    if indeterminate_drugs:
+        conclusion_parts.append(
+            f"NOT ASSESSABLE (coverage of resistance loci not confirmed; "
+            f"susceptibility cannot be inferred): {', '.join(indeterminate_drugs)}")
+
     if lineage_info:
         conclusion_parts.append(f"TB {lineage_info} detected")
-    
+
     conclusion_parts.append("Reference genome: NC_000962.3")
-    
+
     conclusion = ". ".join(conclusion_parts)
-    
+
     conclusion_codes = []
-    
+
     if resistance_class:
         resistance_coding = get_resistance_conclusion_coding(resistance_class)
-        
-        display_text = resistance_class
-        if resistance_class == "Sensitive":
-            display_text = "Sensitive - No resistance detected"
-            
-        code_entry = {"text": display_text}
-        
+
+        code_entry = {"text": resistance_class}
+
         if resistance_coding:
             code_entry["coding"] = [resistance_coding]
-            
+
         conclusion_codes.append(code_entry)
     
     if lineage_info:
@@ -874,6 +930,162 @@ def create_service_request_resource(sample_id, clinical_data=None, practitioner_
         ]
     }
 
+def create_device_resource(pipeline_info):
+
+    version = pipeline_info.get('pipeline_version', 'unknown')
+    version_slug = re.sub(r'-+', '-', re.sub(r'[^A-Za-z0-9\-]', '-', str(version))).strip('-')
+    device_id = f"tb-mutation-analysis-{version_slug or 'unknown'}"
+
+    properties = []
+
+    def _add_string_property(code, display, value):
+        if value:
+            properties.append({
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.spheres.id/CodeSystem/pipeline-property",
+                        "code": code,
+                        "display": display
+                    }],
+                    "text": display
+                },
+                "valueCode": [{"text": str(value)}]
+            })
+
+    def _add_quantity_property(code, display, value, unit=None):
+        if value is None:
+            return
+        quantity = {"value": float(value), "system": "http://unitsofmeasure.org"}
+        quantity["code"] = unit or "1"
+        if unit:
+            quantity["unit"] = unit
+        properties.append({
+            "type": {
+                "coding": [{
+                    "system": "http://terminology.spheres.id/CodeSystem/pipeline-property",
+                    "code": code,
+                    "display": display
+                }],
+                "text": display
+            },
+            "valueQuantity": [quantity]
+        })
+
+    _add_string_property('source-repository', 'Source repository',
+                         pipeline_info.get('source_repository'))
+
+    _add_quantity_property('filter-min-depth', 'Minimum read depth filter',
+                           pipeline_info.get('filter_min_depth'))
+    _add_quantity_property('filter-min-quality', 'Minimum variant quality filter',
+                           pipeline_info.get('filter_min_quality'))
+    _add_quantity_property('coverage-min-depth', 'Coverage assessability depth threshold',
+                           pipeline_info.get('coverage_min_depth'))
+    _add_quantity_property('coverage-min-breadth', 'Coverage assessability breadth threshold',
+                           pipeline_info.get('coverage_min_breadth'))
+
+    device = {
+        "resourceType": "Device",
+        "id": device_id,
+        "meta": {
+            "tag": [{
+                "system": "http://terminology.kemkes.go.id/sp",
+                "code": "genomics",
+                "display": "Genomics"
+            }]
+        },
+        "status": "active",
+        "deviceName": [{
+            "name": "TBtoFHIR",
+            "type": "manufacturer-name"
+        }],
+        "type": {
+            "coding": [{
+                "system": "http://snomed.info/sct",
+                "code": "706689003",
+                "display": "Application program software"
+            }],
+            "text": "Bioinformatics analysis pipeline"
+        },
+        "version": [{
+            "type": {"text": "software-version"},
+            "value": str(version)
+        }]
+    }
+
+    if properties:
+        device["property"] = properties
+
+    return device
+
+
+def create_provenance_resource(sample_id, target_references, device_id,
+                               org_data=None, practitioner_data=None,
+                               source_description=None):
+    org_data = org_data or {}
+    practitioner_data = practitioner_data or {}
+    org_id = org_data.get('org_id', 'unknown-org')
+    org_name = org_data.get('name', 'Unknown Organization')
+
+    current_time = datetime.now(timezone.utc).isoformat()
+
+    provenance = {
+        "resourceType": "Provenance",
+        "id": f"{sample_id}-provenance",
+        "meta": {
+            "tag": [{
+                "system": "http://terminology.kemkes.go.id/sp",
+                "code": "genomics",
+                "display": "Genomics"
+            }]
+        },
+        "target": target_references,
+        "recorded": current_time,
+        "activity": {
+            "coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/v3-DataOperation",
+                "code": "CREATE",
+                "display": "create"
+            }]
+        },
+        "agent": [
+            {
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                        "code": "assembler",
+                        "display": "Assembler"
+                    }]
+                },
+                "who": {
+                    "reference": f"Device/{device_id}",
+                    "display": "TBtoFHIR"
+                }
+            },
+            {
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                        "code": "performer",
+                        "display": "Performer"
+                    }]
+                },
+                "who": {
+                    "reference": f"Organization/{org_id}",
+                    "display": org_name
+                }
+            }
+        ]
+    }
+
+    if source_description:
+        provenance["entity"] = [{
+            "role": "derivation",
+            "what": {"display": source_description}
+        }]
+
+    return provenance
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', required=True, help='Path to input FHIR bundle')
@@ -881,6 +1093,14 @@ def main():
     parser.add_argument('--patient_metadata',      help='Path to patient_clinical_metadata CSV/Excel file')
     parser.add_argument('--organization_metadata', help='Path to organization_metadata CSV/Excel file')
     parser.add_argument('--practitioner_metadata', help='Path to practitioner_metadata CSV/Excel file')
+    parser.add_argument('--pipeline_version', default='unknown', help='Pipeline version')
+    parser.add_argument('--source_repository',
+                        default='https://github.com/oucru-id/tb-to-fhir-full',
+                        help='Pipeline source repository, recorded on the Device')
+    parser.add_argument('--filter_min_depth', type=int, default=None)
+    parser.add_argument('--filter_min_quality', type=int, default=None)
+    parser.add_argument('--coverage_min_depth', type=int, default=None)
+    parser.add_argument('--coverage_min_breadth', type=float, default=None)
     args = parser.parse_args()
 
     debug_print(f"Input FHIR file: {args.input}")
@@ -946,6 +1166,25 @@ def main():
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "entry": []
         }
+
+        pipeline_info = {
+            'pipeline_version': args.pipeline_version,
+            'source_repository': args.source_repository,
+            'filter_min_depth': args.filter_min_depth,
+            'filter_min_quality': args.filter_min_quality,
+            'coverage_min_depth': args.coverage_min_depth,
+            'coverage_min_breadth': args.coverage_min_breadth,
+        }
+
+        device_resource = create_device_resource(pipeline_info)
+        merged_bundle['entry'].append({
+            "fullUrl": f"urn:uuid:{str(uuid.uuid4())}",
+            "resource": device_resource,
+            "request": {
+                "method": "PUT",
+                "url": f"Device/{device_resource['id']}"
+            }
+        })
 
         org_resource = create_organization_resource(org_data)
         merged_bundle['entry'].append({
@@ -1043,7 +1282,7 @@ def main():
             resource = entry.get('resource', {})
             resource_type = resource.get('resourceType')
             resource_id = resource.get('id')
-            
+
             entry_with_request = {
                 "fullUrl": entry.get('fullUrl', f"urn:uuid:{str(uuid.uuid4())}"),
                 "resource": resource,
@@ -1053,6 +1292,32 @@ def main():
                 }
             }
             merged_bundle['entry'].append(entry_with_request)
+
+        for sample_id, sample_observations in observations_by_sample.items():
+            target_references = [{"reference": f"DiagnosticReport/{sample_id}-genomic-report"}]
+            target_references.extend(
+                {"reference": f"Observation/{obs['id']}"}
+                for obs in sample_observations if obs.get('id')
+            )
+
+            provenance_resource = create_provenance_resource(
+                sample_id,
+                target_references,
+                device_resource['id'],
+                org_data,
+                practitioner_data,
+                source_description=f"Annotated variant calls for {sample_id} "
+                                   f"({os.path.basename(args.input)})"
+            )
+
+            merged_bundle['entry'].append({
+                "fullUrl": f"urn:uuid:{str(uuid.uuid4())}",
+                "resource": provenance_resource,
+                "request": {
+                    "method": "PUT",
+                    "url": f"Provenance/{provenance_resource['id']}"
+                }
+            })
 
         with open(args.output, 'w') as f:
             json.dump(merged_bundle, f, indent=2)
