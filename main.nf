@@ -4,8 +4,9 @@ nextflow.enable.dsl = 2
 
 include { ILLUMINA }              from './workflows/illumina.nf'
 include { NANOPORE }              from './workflows/nanopore.nf'
-include { VCF_PROCESSING }        from './workflows/vcf.nf'  
+include { VCF_PROCESSING }        from './workflows/vcf.nf'
 include { LINEAGE }               from './workflows/lineage.nf'
+include { COVERAGE }              from './workflows/coverage.nf'
 include { GENERATE_REPORT }       from './workflows/report.nf'
 include { GENERATE_SAMPLE_REPORTS } from './workflows/report.nf'
 include { FHIR }                  from './workflows/fhir.nf'
@@ -44,6 +45,15 @@ log.info """
 
     lineage_out = LINEAGE(all_filtered)
 
+    aligned_bam_ch = illumina_out.bam.mix(nanopore_out.bam)
+
+    coverage_out = COVERAGE(aligned_bam_ch, vcf_ch)
+
+    coverage_files = coverage_out.coverage
+        .map { sample_id, file_path -> file_path }
+        .collect()
+        .ifEmpty([])
+
     all_qc = illumina_out.qc_report
         .mix(nanopore_out.qc_report)
         .map { it -> it[1] }
@@ -73,7 +83,7 @@ log.info """
     practitioner_metadata_ch = Channel.fromPath(params.practitioner_metadata, checkIfExists: false)
         .first()
 
-    fhir_out = FHIR(all_annotated, lineage_files, org_metadata_ch)
+    fhir_out = FHIR(all_annotated, lineage_files, coverage_files, org_metadata_ch)
 
     merged_clinical_out = MERGE_CLINICAL_DATA(
         fhir_out.fhir_output,
