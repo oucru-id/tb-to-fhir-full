@@ -6,7 +6,7 @@ A platform-agnostic Nextflow pipeline for *Mycobacterium tuberculosis* genomic a
 
 - **Multi-platform**: Illumina paired-end short reads, Oxford Nanopore (ONT) long reads, and pre-annotated VCF input.
 - **Drug Resistance Analysis**: Identifies mutations based on the WHO TB mutation catalogue.
-- - **Coverage-gated susceptibility**: A drug is only reported susceptible when the resistance loci were sequenced. Otherwise it is Indeterminate.
+-  **Coverage-gated susceptibility**: A drug is only reported susceptible when the resistance loci were sequenced. Otherwise it is Indeterminate.
 - **Lineage Classification**: *M. tuberculosis* lineages using barcode SNPs.
 - **Quality Control**: Per-sample FastQC reports aggregated to MultiQC.
 - **FHIR Compliance**: HL7 FHIR R4 bundles with Variant, Drug Susceptibility, Lineage Observations, and DiagnosticReport resources.
