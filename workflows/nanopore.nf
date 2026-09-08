@@ -39,7 +39,11 @@ process minimap2 {
 
     script:
     """
-    minimap2 -a -x map-ont ${reference} ${reads} | samtools sort -o aligned.bam
+
+    minimap2 -x map-ont --secondary=no -L --MD \\
+        -A 2 -B 4 -O 4,24 -E 2,1 \\
+        -t ${task.cpus} -a ${reference} ${reads} \\
+    | samtools sort -o aligned.bam
     samtools index aligned.bam
     """
 }
@@ -53,61 +57,50 @@ process medaka {
     tuple val(sample_id), path("variants.vcf.gz")
 
     script:
-    """
-    mkdir -p medaka_output
 
+    def model = params.medaka_model ?: 'r941_e81_sup_variant_g514'
+    def batch_size = params.medaka_batch_size ?: 100
+    """
     if [ -L "${reference}" ]; then
         actual_reference=\$(readlink -f "${reference}")
         cp "\${actual_reference}" reference.fasta
-        reference_path="reference.fasta"
     else
         cp "${reference}" reference.fasta
-        reference_path="reference.fasta"
     fi
+    reference_path="reference.fasta"
 
     if [ ! -s aligned.bam ]; then
         ls -lh aligned.bam
         exit 1
     fi
-    if [ ! -s \$reference_path ]; then
-        ls -lh \$reference_path
-        exit 1
-    fi
 
     samtools index aligned.bam
-    if [ ! -f aligned.bam.bai ]; then
-        exit 1
-    fi
-
     samtools faidx \$reference_path
-    if [ ! -s \$reference_path.fai ]; then
-        exit 1
-    fi
 
     export CUDA_VISIBLE_DEVICES=""
-    medaka_variant \
-        -i aligned.bam \
-        -r \$reference_path \
-        -o medaka_output \
-        -m r941_e81_sup_variant_g514 \
-        -t ${task.cpus} \
-        -f
 
-    # Check medaka output
-    if [ -f medaka_output/medaka.annotated.vcf ]; then
-        bgzip -c medaka_output/medaka.annotated.vcf > variants.vcf.gz
-    elif [ -f medaka_output/medaka.vcf ]; then
-        bgzip -c medaka_output/medaka.vcf > variants.vcf.gz
-    elif [ -f medaka_output/round_1/calls.vcf ]; then
-        bgzip -c medaka_output/round_1/calls.vcf > variants.vcf.gz
-    elif [ -f medaka_output/calls.vcf ]; then
-        bgzip -c medaka_output/calls.vcf > variants.vcf.gz
-    else
-        ls -R medaka_output/
-        echo "Current directory contents:"
+    medaka inference aligned.bam consensus_probs.hdf \\
+        --model ${model} \\
+        --batch_size ${batch_size} \\
+        --threads ${task.cpus} \\
+        || { echo "Failed to run medaka inference."; exit 1; }
+
+    medaka vcf consensus_probs.hdf \$reference_path medaka.vcf \\
+        || { echo "Failed to create variants."; exit 1; }
+
+    bcftools sort medaka.vcf -o medaka.sorted.vcf \\
+        || { echo "Failed to sort variants."; exit 1; }
+
+    medaka tools annotate medaka.sorted.vcf \$reference_path aligned.bam medaka.annotated.vcf \\
+        || { echo "Failed to annotate variants."; exit 1; }
+
+    if [ ! -s medaka.annotated.vcf ]; then
+        echo "medaka produced no annotated VCF"
         ls -la
-    exit 1
+        exit 1
     fi
+
+    bgzip -c medaka.annotated.vcf > variants.vcf.gz
     """
 
     stub:
