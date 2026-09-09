@@ -1050,6 +1050,10 @@ try:
             elif drug_coverage.get('loci_without_coverage_data'):
                 reason = ("no coverage data for: "
                           + ", ".join(drug_coverage['loci_without_coverage_data']))
+            elif not drug_coverage:
+                reason = ('the WHO mutation catalogue contains no graded variants for this '
+                          'drug, so genotypic prediction is not possible; phenotypic DST is '
+                          'required')
             else:
                 reason = 'resistance loci for this drug are not represented in the coverage targets'
             component["valueCodeableConcept"]["text"] = (
