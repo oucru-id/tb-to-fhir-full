@@ -10,25 +10,26 @@ def load_clinical_metadata(file_path):
     if not os.path.exists(file_path):
         print(f"Clinical metadata file not found: {file_path}")
         return {}
-    
+
     try:
         if file_path.endswith('.xlsx'):
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, dtype=str)
         elif file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, dtype=str, encoding='utf-8-sig')
         else:
             print(f"Unsupported file format: {file_path}")
             return {}
-        
+
         metadata_dict = {}
         for _, row in df.iterrows():
             sample_id = str(row.get('sample_id', row.get('Sample_ID', row.get('SampleID', ''))))
             if sample_id:
                 metadata_dict[sample_id] = row.to_dict()
-        
+
         return metadata_dict
-    
+
     except Exception as e:
+        print(f"Error loading clinical metadata from {file_path}: {e}")
         return {}
 
 def find_matching_sample(sample_id, metadata_dict):
@@ -74,9 +75,9 @@ def load_organization_metadata(file_path):
         return {}
     try:
         if file_path.endswith('.xlsx'):
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, dtype=str)
         elif file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, dtype=str, encoding='utf-8-sig')
         else:
             print(f"Unsupported file format: {file_path}")
             return {}
@@ -95,9 +96,9 @@ def load_practitioner_metadata(file_path):
         return {}
     try:
         if file_path.endswith('.xlsx'):
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, dtype=str)
         elif file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, dtype=str, encoding='utf-8-sig')
         else:
             print(f"Unsupported file format: {file_path}")
             return {}
