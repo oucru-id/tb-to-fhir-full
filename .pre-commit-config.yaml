@@ -1,0 +1,13 @@
+# Install once with:  pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: check-no-phi
+        name: refuse PHI / credentials
+        entry: python3 tools/dev/check_no_phi.py
+        language: system
+        pass_filenames: true
