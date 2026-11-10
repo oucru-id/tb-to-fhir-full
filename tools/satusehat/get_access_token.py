@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -8,9 +9,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-BASEDIR = Path(__file__).parent.parent
-DEFAULT_OUT = str(BASEDIR / "data" / "access_token.json")
-DEFAULT_SSO = str(BASEDIR / "data" / "input_sso.json")
+TBFHIR_HOME = Path(os.environ.get("TBFHIR_HOME", Path.home() / ".tbfhir"))
+DEFAULT_OUT = str(TBFHIR_HOME / "access_token.json")
+DEFAULT_SSO = str(TBFHIR_HOME / "input_sso.json")
 
 
 def fetch_access_token(auth_base_url, client_id, client_secret, scope, timeout):
@@ -110,7 +111,7 @@ def main():
     if args.out:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_path, "w") as output_handle:
+        with os.fdopen(os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as output_handle:
             json.dump(token_result, output_handle, indent=2)
 
     if args.format:

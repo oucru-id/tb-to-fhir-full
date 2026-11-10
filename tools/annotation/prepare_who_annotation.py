@@ -244,8 +244,6 @@ def main():
                     return text
             return 'unknown'
 
-        print("Collapsing to one row per allele with parallel drug/grade arrays...")
-
         grouped = OrderedDict()
         for row in flat_df.itertuples(index=False):
             key = (row.CHROM, row.POS, row.REF, row.ALT)

@@ -1,0 +1,36 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "tbfhir-observation-code",
+  "url": "http://terminology.spheres.id/CodeSystem/tbfhir-observation-code",
+  "version": "2.0.0",
+  "name": "TbfhirObservationCode",
+  "title": "TBtoFHIR observation component codes",
+  "status": "active",
+  "experimental": false,
+  "publisher": "OUCRU Indonesia - TBtoFHIR",
+  "description": "Codes for variant-call and coverage measurements that have no LOINC or Genomics Reporting IG code.",
+  "caseSensitive": true,
+  "content": "complete",
+  "count": 4,
+  "concept": [
+    {
+      "code": "coverage-breadth",
+      "display": "Fraction of bases at or above the minimum depth"
+    },
+    {
+      "code": "who-variant-id",
+      "display": "WHO catalogue variant identifier",
+      "definition": "Variant name as given in the WHO catalogue, e.g. rpoB_p.Ser450Leu"
+    },
+    {
+      "code": "variant-quality",
+      "display": "Variant call quality (QUAL)",
+      "definition": "Phred-scaled quality from VCF column 6"
+    },
+    {
+      "code": "mapping-quality",
+      "display": "Mapping quality (MQ)",
+      "definition": "Root-mean-square mapping quality from INFO/MQ"
+    }
+  ]
+}

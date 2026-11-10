@@ -1,0 +1,14 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "mtb-lineage",
+  "url": "http://terminology.spheres.id/CodeSystem/mtb-lineage",
+  "version": "2.0.0",
+  "name": "MtbLineage",
+  "title": "M. tuberculosis complex lineages",
+  "status": "active",
+  "experimental": false,
+  "publisher": "OUCRU Indonesia - TBtoFHIR",
+  "description": "Lineage names as reported by the barcode classifier (e.g. lineage2, lineage4.1.2). The code is the lineage name; the set follows the barcode file in use.",
+  "caseSensitive": true,
+  "content": "not-present"
+}

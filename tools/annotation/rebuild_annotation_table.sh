@@ -8,7 +8,7 @@ if [[ "${1:-}" == "--compress-only" ]]; then
     shift
 fi
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 XLSX="${BASE_DIR}/data/WHO-UCN-TB-2023.xlsx"
 PREFIX="${1:-${BASE_DIR}/data/$(date +%Y-%m-%d)}"
 
@@ -41,7 +41,7 @@ else
     fi
 
     echo "==> Building annotation table from ${XLSX}"
-    python3 "${BASE_DIR}/scripts/prepare_who_annotation.py" \
+    python3 "${BASE_DIR}/tools/annotation/prepare_who_annotation.py" \
         --input  "${XLSX}" \
         --output "${TSV}" \
         --header "${HEADER}" \

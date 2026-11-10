@@ -120,7 +120,7 @@ def parse_annotated_vcf(vcf_file):
                     elif drugs:
                         debug_print(f"WARNING {chrom}:{pos} {ref}>{alt}: {len(drugs)} drugs but "
                                     f"{len(grades)} grades -- annotation table needs rebuilding "
-                                    f"(scripts/rebuild_annotation_table.sh)")
+                                    f"(tools/annotation/rebuild_annotation_table.sh)")
                         for i, drug in enumerate(drugs):
                             drug_pairs.append({
                                 'drug': drug,
@@ -210,7 +210,7 @@ def generate_summary_report(sample_id, variants, lineage_info, output_dir):
             f.write("WARNING: the annotation table has one row per (variant, drug) pair, so\n")
             f.write(f"         {ambiguous_pairs} pair(s) share a single collapsed WHO grade and\n")
             f.write("         their per-drug association is not reliable. Rebuild the table\n")
-            f.write("         with scripts/rebuild_annotation_table.sh.\n\n")
+            f.write("         with tools/annotation/rebuild_annotation_table.sh.\n\n")
 
 
         if resistance_variants:
@@ -325,21 +325,26 @@ def generate_summary_report(sample_id, variants, lineage_info, output_dir):
 def main():
     parser = argparse.ArgumentParser(description='Generate TB sample summary reports')
     parser.add_argument('--annotated_vcf', required=True, help='Annotated VCF file')
-    parser.add_argument('--lineage_dir', help='Directory containing lineage JSON files')
+    parser.add_argument('--sample_id', help='Sample identifier (default: derived from the VCF name)')
+    parser.add_argument('--lineage_json', help="This sample's lineage JSON")
+    parser.add_argument('--lineage_dir', help='Directory containing lineage JSON files (legacy)')
     parser.add_argument('--output_dir', default='.', help='Output directory')
     args = parser.parse_args()
-    
-    sample_id = extract_sample_id(args.annotated_vcf)
-    
+
+    sample_id = args.sample_id or extract_sample_id(args.annotated_vcf)
+
     variants = parse_annotated_vcf(args.annotated_vcf)
-    
-    lineage_data = load_lineage_data(args.lineage_dir) if args.lineage_dir else {}
-    
+
     lineage_info = None
-    for potential_id in [sample_id, sample_id.replace('_ont.fastq', ''), sample_id.replace('_illumina', '')]:
-        if potential_id in lineage_data:
-            lineage_info = lineage_data[potential_id]
-            break
+    if args.lineage_json:
+        with open(args.lineage_json) as handle:
+            lineage_info = json.load(handle)
+    elif args.lineage_dir:
+        lineage_data = load_lineage_data(args.lineage_dir)
+        for potential_id in [sample_id, sample_id.replace('_ont.fastq', ''), sample_id.replace('_illumina', '')]:
+            if potential_id in lineage_data:
+                lineage_info = lineage_data[potential_id]
+                break
     
     if not lineage_info:
         debug_print(f"No lineage data found for sample {sample_id}")

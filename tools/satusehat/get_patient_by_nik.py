@@ -1,16 +1,8 @@
 #!/usr/bin/env python3
-"""
-  Single NIK lookup:
-  python scripts/get_patient_by_nik.py --nik 1234
 
-  Multiple NIKs:
-  python scripts/get_patient_by_nik.py --nik 1234 5678
-
-  Output results to a JSON file:
-  python scripts/get_patient_by_nik.py --nik 1234 --out results/patient_lookup.json
-"""
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,8 +10,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-BASEDIR = Path(__file__).parent.parent
-DEFAULT_TOKEN_FILE = str(BASEDIR / "data" / "access_token.json")
+TBFHIR_HOME = Path(os.environ.get("TBFHIR_HOME", Path.home() / ".tbfhir"))
+DEFAULT_TOKEN_FILE = str(TBFHIR_HOME / "access_token.json")
 DEFAULT_FHIR_BASE_URL = ""
 NIK_SYSTEM = "https://fhir.kemkes.go.id/id/nik"
 
@@ -135,11 +127,6 @@ def main():
         help=f"Path to access_token.json (default: {DEFAULT_TOKEN_FILE})",
     )
     parser.add_argument(
-        "--static_token",
-        default="",
-        help="Pre-existing Bearer token string (skips reading token_file)",
-    )
-    parser.add_argument(
         "--timeout",
         type=int,
         default=30,
@@ -152,8 +139,8 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.static_token:
-        access_token = args.static_token
+    if os.environ.get("TBFHIR_STATIC_TOKEN"):
+        access_token = os.environ["TBFHIR_STATIC_TOKEN"]
     else:
         access_token = load_access_token(args.token_file)
 
