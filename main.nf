@@ -1,100 +1,18 @@
 #!/usr/bin/env nextflow
 
-nextflow.enable.dsl = 2
-
-include { ILLUMINA }              from './workflows/illumina.nf'
-include { NANOPORE }              from './workflows/nanopore.nf'
-include { VCF_PROCESSING }        from './workflows/vcf.nf'
-include { LINEAGE }               from './workflows/lineage.nf'
-include { COVERAGE }              from './workflows/coverage.nf'
-include { GENERATE_REPORT }       from './workflows/report.nf'
-include { GENERATE_SAMPLE_REPORTS } from './workflows/report.nf'
-include { FHIR }                  from './workflows/fhir.nf'
-include { VALIDATE }              from './workflows/validate_fhir.nf'
-include { MERGE_CLINICAL_DATA }   from './workflows/merge_clinical_data.nf'
-include { UPLOAD_FHIR }           from './workflows/upload_fhir.nf'
-include { VERSIONS }              from './workflows/utils.nf'
+include { validateParameters; paramsSummaryLog } from 'plugin/nf-schema'
+include { TBFHIR } from './workflows/tbfhir'
 
 workflow {
-    
-log.info """
-    Mycobacterium tuberculosis Mutation Analysis Pipeline (v${params.version})
-    Developed by SPHERES OUCRU-ID
-    Documentation: https://tb-pipeline-docs.readthedocs.io/
-"""
-
-    illumina_reads_ch = Channel
-        .fromFilePairs("${params.reads_dir}/*_{1,2}_illumina.fastq.gz")
-        .map { id, files -> tuple(id, files) }  
-
-    nanopore_reads_ch = Channel
-        .fromPath("${params.reads_dir}/*_ont.fastq.gz", checkIfExists: false)
-        .map { file -> tuple(file.baseName.replaceFirst(/_ont$/, ''), file) }
-
-    vcf_ch = Channel
-        .fromPath("${params.vcf_dir}/*.vcf{,.gz}", checkIfExists: false)
-        .map { file -> tuple(file.baseName.replaceFirst(/\.vcf(\.gz)?$/, ''), file) }
-
-    illumina_out = ILLUMINA(illumina_reads_ch)
-    nanopore_out = NANOPORE(nanopore_reads_ch)
-    vcf_out = VCF_PROCESSING(vcf_ch) 
-
-    all_filtered = illumina_out.filtered
-        .mix(nanopore_out.filtered)
-        .mix(vcf_out.filtered) 
-
-    lineage_out = LINEAGE(all_filtered)
-
-    aligned_bam_ch = illumina_out.bam.mix(nanopore_out.bam)
-
-    coverage_out = COVERAGE(aligned_bam_ch, vcf_ch)
-
-    coverage_files = coverage_out.coverage
-        .map { sample_id, file_path -> file_path }
-        .collect()
-        .ifEmpty([])
-
-    all_qc = illumina_out.qc_report
-        .mix(nanopore_out.qc_report)
-        .map { it -> it[1] }
-        .flatten()
-        .filter { it.toString().endsWith('_fastqc.zip') }
-        .collect()
-
-    all_annotated = illumina_out.annotated
-        .mix(nanopore_out.annotated)
-        .mix(vcf_out.annotated)  
-        .map { it -> it instanceof List ? it[1] : it }
-        
-    GENERATE_REPORT(all_qc)
-    
-    lineage_files = lineage_out.lineage_results
-        .map { sample_id, file_path -> file_path } 
-        .collect()
-    
-    sample_reports = GENERATE_SAMPLE_REPORTS(all_annotated, lineage_files)
-    
-    patient_metadata_ch = Channel.fromPath(params.patient_metadata, checkIfExists: false)
-        .first()
-
-    org_metadata_ch = Channel.fromPath(params.organization_metadata, checkIfExists: false)
-        .first()
-
-    practitioner_metadata_ch = Channel.fromPath(params.practitioner_metadata, checkIfExists: false)
-        .first()
-
-    fhir_out = FHIR(all_annotated, lineage_files, coverage_files, org_metadata_ch)
-
-    merged_clinical_out = MERGE_CLINICAL_DATA(
-        fhir_out.fhir_output,
-        patient_metadata_ch,
-        org_metadata_ch,
-        practitioner_metadata_ch
-    )
-    
-    validation_out = VALIDATE(merged_clinical_out.merged_fhir)
-    
-    upload_out = UPLOAD_FHIR(validation_out.validated_fhir)
-
-    VERSIONS()
+    main:
+    log.info """\
+        TBtoFHIR ${workflow.manifest.version}: Mycobacterium tuberculosis genomics to HL7 FHIR
+        ${workflow.manifest.homePage}
+        """.stripIndent()
+    if (params.results_dir) {
+        error "--results_dir was renamed to --outdir in 2.0.0"
+    }
+    validateParameters()
+    log.info paramsSummaryLog(workflow)
+    TBFHIR()
 }

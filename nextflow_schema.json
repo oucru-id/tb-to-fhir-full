@@ -1,0 +1,341 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/oucru-id/tb-to-fhir-full/main/nextflow_schema.json",
+    "title": "oucru-id/tb-to-fhir-full pipeline parameters",
+    "description": "Mycobacterium tuberculosis WGS to WHO-catalogue drug resistance, lineage and HL7 FHIR Genomics reports",
+    "type": "object",
+    "$defs": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Give samples with --input, or with --reads_dir / --vcf_dir.",
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "schema": "assets/schema_input.json",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Samplesheet CSV with columns sample,platform,fastq_1,fastq_2,vcf."
+                },
+                "reads_dir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "description": "Legacy input: directory of <id>_1_illumina.fastq.gz / <id>_2_illumina.fastq.gz and <id>_ont.fastq.gz files."
+                },
+                "vcf_dir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "description": "Legacy input: directory of <id>.vcf or <id>.vcf.gz files."
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "default": "results",
+                    "description": "Output directory."
+                },
+                "results_dir": {
+                    "type": "string",
+                    "hidden": true,
+                    "description": "Removed in 2.0.0; use --outdir."
+                }
+            }
+        },
+        "reference_data": {
+            "title": "Reference data",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Defaults point at the files shipped in data/ (see data/README.md).",
+            "properties": {
+                "reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "H37Rv reference genome (NC_000962.3) FASTA."
+                },
+                "annotation_table": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "bgzipped, tabix-indexed WHO catalogue annotation table (tools/annotation/rebuild_annotation_table.sh). The .tbi must sit next to it."
+                },
+                "annotation_header": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "VCF header lines for the annotation table columns."
+                },
+                "lineage_barcode": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "Lineage barcode SNP BED."
+                },
+                "repetitive_regions": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "BED of repetitive regions (PE/PPE, insertion sequences) excluded from variant calls. Point at assets/NO_FILE to disable masking."
+                },
+                "gene_map": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "Optional TSV gene<TAB>NCBI GeneID extending the built-in gene map."
+                },
+                "legacy_annotation_table": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Accept a v1.5 one-row-per-pair annotation table (applies the most severe grade to every drug; over-calls resistance)."
+                }
+            }
+        },
+        "read_processing": {
+            "title": "Read processing",
+            "type": "object",
+            "fa_icon": "fas fa-filter",
+            "properties": {
+                "trimmomatic_jar": {
+                    "type": "string",
+                    "description": "Path to trimmomatic.jar when the `trimmomatic` command is not on PATH."
+                },
+                "nanopore_min_q": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "chopper minimum read quality."
+                },
+                "nanopore_min_l": {
+                    "type": "integer",
+                    "default": 500,
+                    "description": "chopper minimum read length."
+                },
+                "medaka_model": {
+                    "type": "string",
+                    "description": "medaka model; required for ONT input (e.g. r1041_e82_400bps_sup_variant_v5.0.0)."
+                },
+                "medaka_batch_size": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "medaka inference batch size."
+                }
+            }
+        },
+        "variant_filters_and_coverage": {
+            "title": "Variant filters and coverage",
+            "type": "object",
+            "fa_icon": "fas fa-sliders-h",
+            "properties": {
+                "filter_min_depth": {
+                    "type": "integer",
+                    "default": 5,
+                    "minimum": 0,
+                    "description": "Minimum read depth (DP) of a variant call."
+                },
+                "filter_min_quality": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 0,
+                    "description": "Minimum genotype quality (GQ), or QUAL when a VCF has no GQ."
+                },
+                "coverage_min_depth": {
+                    "type": "integer",
+                    "default": 10,
+                    "minimum": 1,
+                    "description": "Depth at which a base of a resistance locus counts as covered."
+                },
+                "coverage_min_breadth": {
+                    "type": "number",
+                    "default": 0.95,
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Fraction of a locus that must be covered for a drug to be assessable (otherwise Indeterminate)."
+                },
+                "promoter_padding": {
+                    "type": "integer",
+                    "default": 200,
+                    "minimum": 0,
+                    "description": "Padding (bp) around catalogue variant clusters when building coverage targets."
+                }
+            }
+        },
+        "fhir_output": {
+            "title": "FHIR output",
+            "type": "object",
+            "fa_icon": "fas fa-file-medical",
+            "properties": {
+                "fhir_profile": {
+                    "type": "string",
+                    "default": "generic",
+                    "enum": ["generic", "satusehat"],
+                    "description": "generic: HL7 Genomics Reporting IG 3.0.0 only. satusehat: adds Indonesian Ministry of Health (Kemkes) profiles, NIK identifiers and codings."
+                },
+                "performer_org_id": {
+                    "type": "string",
+                    "description": "FHIR id of the performing laboratory Organization, used as performer in the genomic bundles."
+                },
+                "performer_org_name": {
+                    "type": "string",
+                    "description": "Display name for the performing laboratory."
+                },
+                "identifier_system_base": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Base URI for business identifiers in the generic profile (none are emitted if unset)."
+                }
+            }
+        },
+        "clinical_metadata": {
+            "title": "Clinical metadata (optional, contains personal data)",
+            "type": "object",
+            "fa_icon": "fas fa-user-shield",
+            "description": "Give --patient_metadata to build Patient/Specimen/Encounter/ServiceRequest resources and linked transaction bundles.",
+            "properties": {
+                "patient_metadata": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "pattern": "^\\S+\\.(csv|xlsx)$",
+                    "description": "Patient table (CSV or XLSX); see docs/clinical_metadata.md."
+                },
+                "organization_metadata": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "pattern": "^\\S+\\.(csv|xlsx)$",
+                    "description": "Performing organization (first row is used)."
+                },
+                "practitioner_metadata": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "pattern": "^\\S+\\.(csv|xlsx)$",
+                    "description": "Responsible practitioner (first row is used)."
+                },
+                "external_refs": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "JSON {fhir_id: {\"Patient\": \"<server id>\", \"Encounter\": \"<server id>\"}} for resources that already exist on the server."
+                },
+                "require_clinical": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Fail when a sample has no row in the patient table (default: warn, genomic bundle only)."
+                },
+                "bundle_request_method": {
+                    "type": "string",
+                    "default": "PUT",
+                    "enum": ["PUT", "POST"],
+                    "description": "Transaction entry method. POST uses server-assigned ids and ifNoneExist on NIK (SATUSEHAT)."
+                },
+                "publish_clinical": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Publish the clinical resources to <outdir>/fhir/clinical."
+                }
+            }
+        },
+        "fhir_validation": {
+            "title": "FHIR validation",
+            "type": "object",
+            "fa_icon": "fas fa-check-double",
+            "properties": {
+                "skip_fhir_validation": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Do not run the HL7 FHIR validator."
+                },
+                "fhir_validator": {
+                    "type": "string",
+                    "description": "validator_cli.jar: a local path or a URL (default: pinned HAPI FHIR core release)."
+                },
+                "fhir_ig": {
+                    "type": "string",
+                    "default": "hl7.fhir.uv.genomics-reporting#3.0.0",
+                    "description": "Implementation guide package to validate against."
+                },
+                "fhir_tx_server": {
+                    "type": "string",
+                    "default": "n/a",
+                    "description": "Terminology server for code validation; 'n/a' validates offline and sends nothing."
+                },
+                "fail_on_validation_error": {
+                    "type": "boolean",
+                    "description": "Stop the run when a bundle has validation errors (default: true for generic, false for satusehat)."
+                },
+                "fhir_validation_batch_size": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "description": "Files validated per validator process."
+                }
+            }
+        },
+        "fhir_upload": {
+            "title": "FHIR upload",
+            "type": "object",
+            "fa_icon": "fas fa-cloud-upload-alt",
+            "description": "Credentials are Nextflow secrets (TBFHIR_CLIENT_ID, TBFHIR_CLIENT_SECRET, TBFHIR_API_KEY), never parameters.",
+            "properties": {
+                "fhir_server_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "FHIR server base URL. Upload runs only when this is set."
+                },
+                "fhir_auth_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "OAuth2/OIDC realm URL for the client-credentials token."
+                },
+                "fhir_upload_api_key": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Also send the TBFHIR_API_KEY secret as an X-Api-Key header."
+                }
+            }
+        },
+        "resource_limits": {
+            "title": "Resource limits",
+            "type": "object",
+            "fa_icon": "fas fa-microchip",
+            "properties": {
+                "max_cpus": {
+                    "type": "integer",
+                    "default": 8,
+                    "description": "Most CPUs any task may request."
+                },
+                "max_memory": {
+                    "type": "string",
+                    "default": "16 GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\s*(K|M|G|T)?B$",
+                    "description": "Most memory any task may request, e.g. '16 GB'."
+                },
+                "max_time": {
+                    "type": "string",
+                    "default": "24h",
+                    "description": "Longest any task may run, e.g. '24h'."
+                },
+                "trace_report_suffix": {
+                    "type": "string",
+                    "hidden": true,
+                    "description": "Suffix for pipeline_info report file names (default: start time)."
+                }
+            }
+        }
+    },
+    "allOf": [
+        {"$ref": "#/$defs/input_output_options"},
+        {"$ref": "#/$defs/reference_data"},
+        {"$ref": "#/$defs/read_processing"},
+        {"$ref": "#/$defs/variant_filters_and_coverage"},
+        {"$ref": "#/$defs/fhir_output"},
+        {"$ref": "#/$defs/clinical_metadata"},
+        {"$ref": "#/$defs/fhir_validation"},
+        {"$ref": "#/$defs/fhir_upload"},
+        {"$ref": "#/$defs/resource_limits"}
+    ]
+}
