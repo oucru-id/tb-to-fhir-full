@@ -1,0 +1,3 @@
+# SYNTHETIC test fixture - invented values, not patient data
+practitioner_id,nik,name,phone,gender,birth_date,str_kki_number,qualification_period_start,role_id,role_code,role_display,role_text
+N99999999,9900000000000001,dr. Praktisi Sintetis,+62-800-0000-0001,female,1980-01-01,SYN-STR-0001,2020-01-01,SYN-ROLE-001,309343006,Physician,Clinical microbiologist

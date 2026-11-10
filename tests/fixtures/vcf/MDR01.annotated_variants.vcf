@@ -1,0 +1,16 @@
+##fileformat=VCFv4.2
+##source=TBtoFHIR synthetic test fixture (SYNTHETIC - not patient data)
+##contig=<ID=NC_000962.3,length=4411532>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele frequency">
+##INFO=<ID=DP4,Number=4,Type=Integer,Description="ref-fwd, ref-rev, alt-fwd, alt-rev">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="Mapping quality">
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene name">
+##INFO=<ID=DRUG,Number=.,Type=String,Description="Associated drug(s)">
+##INFO=<ID=EFFECT,Number=1,Type=String,Description="Predicted effect of mutation">
+##INFO=<ID=WHO_CLASSIFICATION,Number=.,Type=String,Description="WHO resistance classification, one per DRUG, same order">
+##INFO=<ID=VARIANT_ID,Number=.,Type=String,Description="WHO graded variant identifier, one per DRUG, same order">
+##INFO=<ID=GENOME_POSITION,Number=1,Type=Integer,Description="Genome position">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+NC_000962.3	761155	.	C	T	2500.00	PASS	AC=2;AF=1.00;AN=2;DP=92;MQ=60.00;GENE=rpoB;DRUG=Rifampicin;EFFECT=missense_variant;WHO_CLASSIFICATION=Assoc w R;VARIANT_ID=rpoB_p.Ser450Leu;GENOME_POSITION=761155
+NC_000962.3	2155168	.	C	G	2500.00	PASS	DP=70;DP4=3,4,31,32;MQ=59.12;GENE=katG;DRUG=Isoniazid;EFFECT=missense_variant;WHO_CLASSIFICATION=Assoc w R;VARIANT_ID=katG_p.Ser315Thr;GENOME_POSITION=2155168

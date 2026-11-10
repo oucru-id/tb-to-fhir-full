@@ -1,0 +1,48 @@
+{
+  "baseline_commit": "550a8dc",
+  "samples": {
+    "HR01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "INDEL01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "LEGACY01": {
+      "genomic_exit": 2
+    },
+    "MDR01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "PREXDR01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "PZA01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "RR01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "TB_001": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "TB_002": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "UNC01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    },
+    "XDR01": {
+      "genomic_exit": 0,
+      "merge_exit": 0
+    }
+  }
+}

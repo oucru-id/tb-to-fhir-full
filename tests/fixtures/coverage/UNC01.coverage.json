@@ -1,0 +1,9 @@
+{
+  "sample_id": "UNC01",
+  "coverage_assessed": false,
+  "reason": "VCF input: no alignment available, so locus coverage could not be assessed",
+  "min_depth": 10,
+  "min_breadth": 0.95,
+  "genes": {},
+  "drugs": {}
+}
