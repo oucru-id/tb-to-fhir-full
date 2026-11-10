@@ -1,8 +1,3 @@
-"""Write the pipeline CSV from stored rows.
-
-This is the contract boundary: scripts/clinical_metadata_parser.py parses whatever
-this produces, so column order and quoting must be exact.
-"""
 
 import csv
 import os
@@ -13,13 +8,7 @@ from schema import COLUMNS
 
 
 def export_csv(rows, csv_path):
-    """Write rows to csv_path atomically, backing up any existing file.
 
-    Plain UTF-8 without a BOM: the shipped file has one, but both readers handle
-    either (csv.DictReader with utf-8-sig, and pandas read_csv), so omitting it is
-    strictly safer. Written to a temp file in the same directory then os.replace()d
-    so a crash cannot leave the pipeline a truncated file.
-    """
     csv_path = os.path.abspath(csv_path)
     target_dir = os.path.dirname(csv_path)
     os.makedirs(target_dir, exist_ok=True)
@@ -51,7 +40,6 @@ def export_csv(rows, csv_path):
 
 
 def _clean(value):
-    """Empty string for anything missing -- never the literal 'nan' or 'None'."""
     if value is None:
         return ""
     text = str(value).strip()
@@ -61,7 +49,6 @@ def _clean(value):
 
 
 def diff_against_csv(rows, csv_path):
-    """Compare stored rows with the CSV on disk. Returns (new, changed, removed)."""
     if not os.path.exists(csv_path):
         return [r.get("sample_id", "") for r in rows], [], []
 

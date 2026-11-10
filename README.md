@@ -1,180 +1,215 @@
 # TB Genomics Mutation Analysis to FHIR Genomics Pipeline (TBtoFHIR)
 
-A platform-agnostic Nextflow pipeline for *Mycobacterium tuberculosis* genomic analysis from raw sequencing data or pre-annotated VCFs, producing HL7 FHIR R4 genomics bundles (IG v3.0.0). [Full documentation](https://tb-pipeline-docs.readthedocs.io/)
+A Nextflow pipeline for *Mycobacterium tuberculosis* genomic analysis from raw sequencing data or
+VCFs. It produces WHO-catalogue drug-resistance calls, lineage and coverage QC, and reports them as
+HL7 FHIR R4 resources conforming to the
+[Genomics Reporting IG 3.0.0](https://hl7.org/fhir/uv/genomics-reporting/STU3/).
 
-**Current version: 1.6.0** — see [CHANGELOG.md](CHANGELOG.md). v1.6.0 fixes two defects that produced incorrect resistance calls and changes how susceptibility is reported; read [Susceptibility Interpretation](#susceptibility-interpretation) before comparing results with earlier runs.
+**Version 2.0.0 (unreleased)**. See [CHANGELOG.md](CHANGELOG.md). 2.0 changes the inputs, the
+output layout and the FHIR structure. Read the
+[breaking changes](CHANGELOG.md#breaking-changes) before upgrading from 1.6.
 
-## Key Features
+## Key features
 
-- **Multi-platform**: Illumina paired-end short reads, Oxford Nanopore (ONT) long reads, and pre-annotated VCF input.
-- **Drug Resistance Analysis**: Identifies mutations based on the WHO TB mutation catalogue, graded **per (variant, drug) pair** — one variant can be *Assoc w R* for one drug and *Uncertain* for another.
-- **Coverage-gated susceptibility**: A drug is only reported susceptible when the resistance loci were demonstrably sequenced. Otherwise it is **Indeterminate**, never silently susceptible.
-- **Lineage Classification**: *M. tuberculosis* lineages using barcode SNPs, with confidence and barcode-SNP support.
-- **Quality Control**: Per-sample FastQC reports aggregated to MultiQC, plus per-locus coverage over the WHO resistance targets.
-- **FHIR Compliance**: HL7 FHIR R4 bundles with Variant, Drug Susceptibility, Region Studied, Lineage Observations, DiagnosticReport, Device and Provenance resources.
-- **Clinical Integration**: Merges genomic results with patient, organization, and practitioner metadata.
+- **Multi-platform input**: Illumina paired-end reads, Oxford Nanopore reads, or VCFs.
+- **Per-drug WHO grading**: one variant can be *Assoc w R* for one drug and *Uncertain* for
+  another.
+- **Coverage-gated susceptibility**: a drug is reported susceptible only when every one of its
+  resistance loci was sequenced to the required depth and breadth. Otherwise it is
+  **Indeterminate**, never silently susceptible.
+- **Lineage classification** from barcode SNPs, with confidence and SNP support.
+- **QC**: FastQC/MultiQC and per-locus coverage over the WHO resistance targets.
+- **PHI-free genomic FHIR by default**. As in
+  [vcf2fhir](https://github.com/elimuinformatics/vcf2fhir), the genomic report refers to the
+  patient by id only. Clinical resources are built in a separate, optional step and joined to the
+  genomic report in a third step.
+- **Two FHIR profiles**:
+  - `generic` (default): plain HL7 Genomics Reporting.
+  - `satusehat`: adds what the Indonesian Ministry of Health SATUSEHAT platform expects (Kemkes
+    profiles, NIK identifiers, Kemkes codings).
 
 ## Requirements
 
-| Tool | Required for |
+You need [Nextflow](https://www.nextflow.io/) ≥ 25.04 and **one** of the following:
+
+| Profile | Provides the tools via |
 |---|---|
-| Nextflow (≥ 23) | All runs |
-| `bcftools`, `samtools`, `tabix`/`bgzip` | All runs |
-| `mosdepth` | Coverage assessment (FASTQ input only) |
-| `bwa-mem2`, `minimap2`, `fastqc` | FASTQ input |
-| GATK, `trimmomatic` | Illumina path |
-| `medaka`, `chopper` | Nanopore path |
-| Python 3 with `pandas` | FHIR generation and clinical merge |
+| `-profile docker` (or `podman`) | pinned [BioContainers](https://biocontainers.pro/) images |
+| `-profile singularity` (or `apptainer`) | the same images, e.g. on HPC |
+| `-profile conda` (or `mamba`) | pinned bioconda / conda-forge packages |
+| none | tools already on `PATH` (see below) |
 
-> The pipeline calls `python3` directly. Ensure the interpreter on `PATH` has `pandas` installed,
-> or the FHIR steps will fail on import.
+Every process uses the tool versions that produced the v1.6 results:
+- FastQC 0.12.1, Trimmomatic 0.39
+- bwa-mem2 2.2.1, minimap2 2.26, samtools 1.19.2
+- GATK 4.4.0.0, medaka 2.1.0, chopper 0.12.0
+- bcftools 1.19, mosdepth 0.3.6, MultiQC 1.30
+- Python 3.12, Java 21
 
-## Installation
+Images are pulled only for the processes that run; for example, Illumina-only runs never
+download medaka. The largest images are GATK (~1.5 GB), medaka (2 GB) and chopper (1 GB).
 
-### Setup
+Without a profile you need on `PATH`:
+- for all runs: `bcftools`, `samtools`, `tabix`/`bgzip`, Python 3 (standard library only) and
+  Java ≥ 17
+- for Illumina input: `bwa-mem2`, GATK 4 (`gatk`), `trimmomatic`, `fastqc`, `multiqc`, `mosdepth`
+- for ONT input: `minimap2`, `medaka`, `chopper`
+
+If you have only the Debian/Ubuntu `trimmomatic.jar`, pass
+`--trimmomatic_jar /usr/share/java/trimmomatic.jar`.
+
+Notes for container runs:
+- The Python image has no `openpyxl`, so give `.xlsx` clinical metadata as CSV, or use
+  `-profile conda`.
+- The FHIR validator downloads its IG packages (about 50 MB) into the task directory on each run.
+  Without containers it caches them in `~/.fhir`.
+
+## Quick start
 
 ```bash
 git clone https://github.com/oucru-id/tb-to-fhir-full.git
 cd tb-to-fhir-full
 
-# Install Nextflow
-curl -s https://get.nextflow.io | bash
-
-# Verify
-nextflow -v
+# check the installation with the bundled test data
+nextflow run . -profile test_stub -stub-run         # wiring only, no tools needed
+nextflow run . -profile test_vcf,docker             # end to end on synthetic VCFs
+nextflow run . -profile test,docker                 # Illumina path on a 10 MB public subset (ERR1873531, MDR-TB)
 ```
 
-### Build the WHO annotation table
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
+- the PHI guard, gitleaks, ruff and `nextflow lint`
+- pytest
+- the stub run on Nextflow 25.04 and the latest release
+- the three test profiles under Docker, and `test_vcf` under conda
 
-The annotation table must have **one row per allele** with positionally aligned
-`DRUG` / `WHO_CLASSIFICATION` / `VARIANT_ID` arrays. A table with one row per (variant, drug) pair
-causes `bcftools annotate` to collapse the grade and silently drop resistance calls.
+## Input
+
+### Samplesheet (recommended)
+
+```csv
+sample,platform,fastq_1,fastq_2,vcf
+TB0001,illumina,/data/TB0001_R1.fastq.gz,/data/TB0001_R2.fastq.gz,
+TB0002,ont,/data/TB0002.fastq.gz,,
+TB0003,vcf,,,/data/TB0003.vcf.gz
+```
 
 ```bash
-scripts/rebuild_annotation_table.sh          # builds, compresses, indexes and verifies
+nextflow run oucru-id/tb-to-fhir-full -r v2.0.0 --input samplesheet.csv --outdir results
 ```
 
-Then point `nextflow.config` at the result:
+Sample ids may use letters, digits, `.`, `_` and `-` (up to 40 characters). Use laboratory
+accessions, not national ID numbers: sample ids appear in the PHI-free genomic output.
 
-```groovy
-annotation_table  = "$baseDir/data/<prefix>_annotation_table.tsv.gz"
-annotation_header = "$baseDir/data/<prefix>_annotations_header.txt"
+### Folders (v1.6 naming)
+
+```bash
+nextflow run . --reads_dir /data/NGS --vcf_dir /data/VCF
 ```
 
-If `data/Genomic_coordinates_*.vcf.gz` (WHO's own coordinate VCF) is present, the build
-cross-checks the extracted coordinates against it and aborts on any disagreement.
+The folder files must be named:
+- `<id>_1_illumina.fastq.gz` and `<id>_2_illumina.fastq.gz`
+- `<id>_ont.fastq.gz`
+- `<id>.vcf` or `<id>.vcf.gz`
 
-The pipeline refuses to run against a legacy one-row-per-pair table and tells you to rebuild.
-
-## Directory Structure
-
-```
-tb-to-fhir-full
-├── main.nf                             # Main workflow
-├── nextflow.config                     # Configuration and parameters
-├── workflows/
-│   ├── illumina.nf                     # Illumina sub-workflow
-│   ├── nanopore.nf                     # Nanopore sub-workflow
-│   ├── vcf.nf                          # VCF sub-workflow
-│   ├── lineage.nf                      # Lineage classification
-│   ├── coverage.nf                     # WHO target coverage / assessability
-│   ├── fhir.nf                         # FHIR variants generation
-│   ├── validate_fhir.nf                # FHIR validation
-│   ├── merge_clinical_data.nf          # Clinical metadata merge
-│   ├── upload_fhir.nf                  # FHIR server upload
-│   ├── report.nf                       # QC and sample report generation
-│   └── utils.nf                        # Utility functions
-├── scripts/
-│   ├── annotated_to_fhir.py            # VCF-to-FHIR converter
-│   ├── clinical_metadata_parser.py     # Patient/org/practitioner parser
-│   ├── generate_sample_report.py       # Per-sample text report
-│   ├── lineage_classifier.py           # SNP-barcode lineage classifier
-│   ├── make_who_targets.py             # WHO resistance loci -> BED
-│   ├── merge_clinical_fhir.py          # FHIR genomics + clinical data merger
-│   ├── prepare_who_annotation.py       # WHO catalogue xlsx -> annotation table
-│   ├── rebuild_annotation_table.sh     # Rebuild + index + verify the catalogue
-│   ├── summarize_coverage.py           # mosdepth -> per-drug assessability
-│   ├── upload_fhir.py                  # FHIR uploader
-│   ├── get_access_token.py             # Standalone token fetcher
-│   └── get_versions.py                 # Software version collector
-├── data/
-│   ├── NGS/                            # Input FASTQ files
-│   ├── VCF/                            # Input VCF files
-│   ├── H37Rv.fasta                     # Reference genome
-│   ├── repetitive_regions.bed          # Exclusion regions
-│   ├── *_lineage.bed                   # Lineage barcode SNPs
-│   ├── *_annotation_table.tsv.gz       # WHO mutation annotation table
-│   ├── *_annotations_header.txt        # VCF INFO header for the table
-│   ├── Genomic_coordinates_*.vcf.gz    # WHO coordinate VCF (optional cross-check)
-│   ├── gene_ncbi_map.tsv               # Optional gene -> NCBI GeneID overrides
-│   ├── patient_clinical_metadata.csv   # Patient metadata
-│   ├── organization_metadata.csv       # Organization metadata
-│   └── practitioner_metadata.csv       # Practitioner metadata
-└── tools/
-    └── fhir-validator.jar              # HL7 FHIR validator
-```
-
-## Input Data
-
-### Illumina Reads
-Place paired-end FASTQ files in `data/NGS/`:
-```
-data/NGS/SAMPLE_1_illumina.fastq.gz
-data/NGS/SAMPLE_2_illumina.fastq.gz
-```
-
-### Nanopore Reads
-Place single-end FASTQ files in `data/NGS/`:
-```
-data/NGS/SAMPLE_ont.fastq.gz
-```
-
-### Pre-annotated VCFs
-Place VCF files (`.vcf` or `.vcf.gz`) in `data/VCF/`.
+ONT input also needs `--medaka_model`, for example `r1041_e82_400bps_sup_variant_v5.0.0`.
 
 > **VCF input cannot produce susceptible calls.** A variant-only VCF records which variants were
-> *called*, never which regions were *callable*, so coverage cannot be established and every
-> non-resistant drug is reported **Indeterminate**. Resistance detection is unaffected. Use FASTQ
-> input if you need susceptibility results.
+> *called*, never which regions were *callable*. Coverage therefore cannot be established, and
+> every non-resistant drug is reported **Indeterminate**. Resistance detection is unaffected. Use
+> FASTQ input if you need susceptibility results.
 
-## Usage
+## FHIR output
 
-### Get Access Token (FHIR Upload)
+The output has three layers:
 
-```bash
-python scripts/get_access_token.py
-```
-
-### Basic Run
-
-```bash
-nextflow run main.nf
-```
-
-### Run with FHIR Upload
-
-> Get the access token first before running with upload.
+| Step | Output | Contains |
+|---|---|---|
+| genomic (always) | `fhir/genomic/<id>.genomic.fhir.json` | DiagnosticReport, variant / susceptibility-panel / region-studied / lineage Observations, Device, Provenance. **No patient data**: the subject is the reference `Patient/<id>-patient`. |
+| clinical (with `--patient_metadata`) | `fhir/clinical/` | Patient, Specimen, Encounter, ServiceRequest per sample; Organization, Practitioner, PractitionerRole once. **Personal data.** |
+| link (with `--patient_metadata`) | `fhir/bundle/<id>.bundle.fhir.json` | One FHIR `transaction` per sample, with every reference resolved inside the bundle. **Personal data.** |
 
 ```bash
-nextflow run main.nf \
-  --fhir_server_url "https://<BASE_URL>/fhir"
+nextflow run . --input samplesheet.csv \
+  --patient_metadata site/patients.csv \
+  --organization_metadata site/organization.csv \
+  --practitioner_metadata site/practitioner.csv \
+  --performer_org_id 100000001
 ```
+
+The CSV columns are described in [docs/clinical_metadata.md](docs/clinical_metadata.md). Keep
+these files, and the `fhir/clinical` and `fhir/bundle` outputs, out of version control.
+
+A sample with no row in the patient table gets a genomic bundle only. It is listed as
+`missing_clinical` in `fhir/bundle/link_summary.tsv`; `--require_clinical` turns that into an
+error.
+
+### Profiles
+
+- `--fhir_profile generic` (default) emits only HL7 Genomics Reporting IG 3.0.0 content.
+- `--fhir_profile satusehat` adds the Kemkes StructureDefinitions and `genomics` tag, NIK and
+  `sys-ids.kemkes.go.id` identifiers, the administrative-code and citizenship extensions, and the
+  Kemkes WHO-grade and conclusion codings. Its output matches v1.6, apart from the documented
+  fixes.
+
+### Validation
+
+Every bundle is checked with the HL7 FHIR validator against `hl7.fhir.uv.genomics-reporting#3.0.0`
+and the project CodeSystems in `assets/fhir/`.
+- Results: `fhir/validation/validation_summary.tsv`.
+- Validation runs offline by default (`--fhir_tx_server n/a`), so no codes are sent to a public
+  terminology server. Code checks that need a server are reported as not performed.
+- A validation error stops the run for `generic` and only warns for `satusehat` (the validator
+  cannot resolve the Kemkes profiles). Override with `--fail_on_validation_error true|false`.
+- `--skip_fhir_validation` skips the step.
+
+### Upload
+
+Upload runs only when `--fhir_server_url` is given. It sends only linked bundles that passed
+validation. Credentials are Nextflow secrets, never parameters:
+
+```bash
+nextflow secrets set TBFHIR_CLIENT_ID     '<client id>'
+nextflow secrets set TBFHIR_CLIENT_SECRET '<client secret>'
+nextflow run . --input samplesheet.csv --patient_metadata site/patients.csv \
+  --fhir_profile satusehat \
+  --fhir_server_url https://<server>/fhir --fhir_auth_url https://<sso>/realms/<realm>
+```
+
+To also send an `X-Api-Key` header, set the `TBFHIR_API_KEY` secret and add
+`--fhir_upload_api_key`. For SATUSEHAT, test against the sandbox first.
+`--bundle_request_method POST` sends server-assigned-id transactions (with `ifNoneExist` on NIK).
+`--external_refs` maps samples to Patients that already exist on the server.
 
 ## Configuration
 
-Key parameters in `nextflow.config`:
+All parameters are described in [nextflow_schema.json](nextflow_schema.json) and listed by
+`nextflow run . --help`. The most used:
 
 | Parameter | Default | Purpose |
 |---|---|---|
-| `annotation_table` | `data/*_annotation_table.tsv.gz` | WHO catalogue, one row per allele |
-| `annotation_header` | `data/*_annotations_header.txt` | VCF INFO header for the table |
-| `coverage_min_depth` | `10` | Depth threshold for a base to count as covered |
-| `coverage_min_breadth` | `0.95` | Fraction of a locus that must reach that depth for the drug to be assessable |
-| `promoter_padding` | `200` | Bases added around each gene when building coverage targets |
-| `filter_min_depth` | `5` | Variant-calling depth filter |
-| `filter_min_quality` | `20` | Variant-calling quality filter |
+| `--input` | | samplesheet |
+| `--outdir` | `results` | output folder |
+| `--fhir_profile` | `generic` | `generic` or `satusehat` |
+| `--patient_metadata` | | enables the clinical and link steps |
+| `--performer_org_id` | | performing laboratory, as the genomic report's performer |
+| `--coverage_min_depth` / `--coverage_min_breadth` | `10` / `0.95` | assessability threshold per locus |
+| `--filter_min_depth` / `--filter_min_quality` | `5` / `20` | variant call filters |
+| `--max_cpus` / `--max_memory` / `--max_time` | `8` / `16 GB` / `24h` | cap on any single task |
 
-## Susceptibility Interpretation
+### WHO annotation table
+
+The table must have **one row per allele**, with positionally aligned `DRUG` /
+`WHO_CLASSIFICATION` / `VARIANT_ID` arrays. A table with one row per (variant, drug) pair causes
+`bcftools annotate` to collapse the grade, which silently drops resistance calls. The pipeline
+refuses to run on such a table.
+
+```bash
+tools/annotation/rebuild_annotation_table.sh      # builds, compresses, indexes and verifies
+nextflow run . --annotation_table data/<prefix>_annotation_table.tsv.gz \
+               --annotation_header data/<prefix>_annotations_header.txt
+```
+
+## Susceptibility interpretation
 
 Each drug in the susceptibility panel resolves to one of **three** states:
 
@@ -184,75 +219,80 @@ Each drug in the susceptibility panel resolves to one of **three** states:
 | **Susceptible** | `LA24225-7` | No such variant **and** every locus for that drug met the coverage threshold |
 | **Indeterminate** | `LA9663-1` | No such variant, but coverage of the relevant loci was not confirmed |
 
-Absence of a resistance mutation is only evidence of susceptibility when the relevant loci were
-demonstrably sequenced. Resistance is unaffected by coverage — a detected mutation is a positive
-finding that carries its own evidence.
+Region-studied Observations record each locus's mean depth and breadth, so a reviewer can see why
+a drug was left Indeterminate.
 
-`region-studied` Observations record per-locus mean depth and breadth, so a reviewer can see
-exactly which loci were assessable and why a drug was left indeterminate.
-
-## Drug Resistance Classification
-
-The `DiagnosticReport` conclusion is derived using the following order:
+## Drug resistance classification
 
 | Classification | Criteria |
 |---|---|
-| XDR-TB | MDR/RR + Fluoroquinolone resistance + Group A drug resistance |
-| Pre-XDR-TB | MDR/RR + Fluoroquinolone resistance |
-| MDR-TB | Resistance to both Isoniazid and Rifampicin |
+| XDR-TB | MDR/RR + fluoroquinolone resistance + Group A drug resistance |
+| Pre-XDR-TB | MDR/RR + fluoroquinolone resistance |
+| MDR-TB | Resistance to both isoniazid and rifampicin |
 | RR-TB | Rifampicin resistance only |
-| HR-TB | Isoniazid resistance, Rifampicin **assessed and susceptible** |
-| Mono-resistant | Single drug resistance (Streptomycin, Ethionamide, Pyrazinamide, Ethambutol, or Ciprofloxacin) |
+| HR-TB | Isoniazid resistance, rifampicin **assessed and susceptible** |
+| Mono-resistant | Single-drug resistance (streptomycin, ethionamide, pyrazinamide, ethambutol, or ciprofloxacin) |
 | Drug-resistant | Any other resistance combination |
-| Drug-resistant – rifampicin not assessable | Resistance detected, but Rifampicin could not be assessed, so RR/MDR/pre-XDR/XDR cannot be determined |
+| Drug-resistant - rifampicin not assessable | Resistance detected, but rifampicin could not be assessed |
 | No resistance detected | No resistance variant, and **all** drug groups were assessable |
-| No resistance detected – partial | No resistance variant, but some drugs could not be assessed |
-| Indeterminate | No resistance variant and no drug could be assessed |
+| No resistance detected - partial | No resistance variant, but some drugs could not be assessed |
+| Indeterminate | No resistance variant, and no drug could be assessed |
 
-> The classifications that depend on Rifampicin (RR/MDR/pre-XDR/XDR) are only asserted when
-> Rifampicin itself was assessable.
-
-## Output Structure
+## Output structure
 
 ```
 results/
-├── qc/
-│   ├── multiqc_report.html         # Aggregated QC report
-│   ├── who_targets.bed             # WHO resistance loci used for coverage
-│   ├── *.coverage.json             # Per-drug assessability summary
-│   ├── *.regions.bed.gz            # mosdepth per-target mean depth
-│   └── *.thresholds.bed.gz         # mosdepth bases at each depth threshold
-├── lineage/
-│   └── *.lineage.json              # Per-sample lineage results
-├── fhir/
-│   └── *.fhir.json                 # FHIR genomics bundles
-├── fhir_merged/
-│   └── *.merged.fhir.json          # FHIR bundles with clinical data
-├── fhir_validated/
-│   └── *.validation.txt            # FHIR validation results
-├── reports/
-│   └── *.summary_report.txt        # Per-sample summary reports
-├── runningstat/
-│   ├── execution.html              # Nextflow execution report
-│   ├── timeline.html               # Timeline report
-│   └── dag.html                    # Workflow DAG
-└── software_versions.yml           # Software version manifest
+├── pipeline_info/          execution report, timeline, trace, DAG, software_versions.yml
+├── qc/fastqc/  qc/multiqc/
+├── qc/coverage/            who_targets.bed, <id>.coverage.json, mosdepth beds
+├── variants/               <id>.filtered_variants.vcf.gz, <id>.annotated_variants.vcf.gz
+├── lineage/                <id>.lineage.json
+├── reports/                <id>.summary_report.txt
+└── fhir/
+    ├── genomic/            <id>.genomic.fhir.json           (PHI-free)
+    ├── clinical/           clinical resources, clinical_summary.tsv   (personal data)
+    ├── bundle/             <id>.bundle.fhir.json, link_summary.tsv    (personal data)
+    ├── validation/         validation.json, validation_summary.tsv
+    └── upload/             <id>.bundle.upload.json
 ```
 
-## Known Limitations
+## Repository layout
 
-- **Deletion and some LoF graded-variants have no genomic coordinates** in the WHO catalogue
-  (`pncA_deletion` is named explicitly in WHO's instructions), so they cannot be matched by
-  coordinate lookup. Some pyrazinamide resistance is therefore invisible by construction.
-- **Allele frequency depends on the caller.** It is derived from `INFO/DP4`, `AF` or `AF1`; callers
-  that report allele depth only in `FORMAT/AD` will not yield a frequency, so heteroresistance
+```
+main.nf  workflows/tbfhir.nf  subworkflows/local/  modules/local/   Nextflow code
+bin/                       Python steps (genomic, clinical, link, coverage, lineage, upload)
+conf/                      resources, output layout, test profiles
+assets/                    samplesheet schema, FHIR CodeSystems, metadata templates
+data/                      reference genome, WHO annotation table, lineage barcode, masks
+tools/annotation/          rebuild the WHO annotation table
+tools/metadata_ui/         Streamlit editor for the clinical metadata table
+tools/satusehat/           SATUSEHAT token and patient-lookup helpers
+tests/                     pytest suite, synthetic fixtures, v1 equivalence goldens
+```
+
+Developers can run `pytest`. `tests/compat/` checks that `--fhir_profile satusehat` reproduces
+v1.6 output, apart from the documented allowlist in `tests/compat/allowlist.py`.
+
+## Known limitations
+
+- **Deletions and some LoF graded variants have no genomic coordinates** in the WHO catalogue
+  (`pncA_deletion` is named explicitly in WHO's instructions). They cannot be matched by
+  coordinate lookup, so some pyrazinamide resistance is invisible by construction.
+- **Multi-nucleotide variants are dropped by the variant filter** (`bcftools view -v
+  snps,indels`). GATK reports SNVs by default, but a submitted VCF with MNVs loses them.
+- **Lineage without barcode evidence.** The barcode's lineage-4 alleles equal the H37Rv
+  reference, so they never appear in a VCF. When no barcode SNP matches (lineage-4 samples, or
+  poor coverage at the barcode sites), the classifier reports the first lineage in the barcode
+  file (`lineage4.2.2.1`) with 0 matched SNPs and confidence `low`. Check `matched_snps` and
+  `confidence` in `lineage/<id>.lineage.json`, or the lineage Observation's components, before
+  relying on the call.
+- **Allele frequency depends on the caller.** It is derived from `INFO/DP4`, `AF` or `AF1`.
+  Callers that report allele depth only in `FORMAT/AD` yield no frequency, so heteroresistance
   cannot be assessed for those inputs.
-- **45 WHO catalogue genes have no verified NCBI GeneID** and are emitted as text-only codings.
-  Add verified IDs to `data/gene_ncbi_map.tsv` to code them.
-- **FHIR validation failures are not fatal** — `validate_fhir.nf` currently reports but does not
-  fail the run.
-- `Specimen.collectedDateTime` / `receivedTime` fall back to run timestamps when the metadata CSV
-  columns are empty.
+- **45 WHO catalogue genes have no verified NCBI GeneID** and are emitted as text only. Add
+  verified IDs to `data/gene_ncbi_map.tsv`.
+- **SATUSEHAT upload has not been verified against the production platform.** Test against the
+  sandbox first.
 
 ## Support
 

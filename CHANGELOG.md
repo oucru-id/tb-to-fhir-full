@@ -5,6 +5,143 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this p
 
 ---
 
+## [2.0.0] — Unreleased
+
+Restructures the pipeline for public release:
+- The FHIR output is split into a **PHI-free genomic layer** and an **optional clinical layer**.
+- Plain HL7 Genomics Reporting is the default profile; SATUSEHAT becomes opt-in.
+- The Nextflow code is reorganised into modules with stubs, a parameter schema and test profiles.
+
+With `--fhir_profile satusehat` the linked bundles match 1.6 except for the fixes listed below
+(checked by `tests/test_v1_equivalence.py` against `tests/compat/allowlist.py`).
+
+### Fixed
+
+- **Samples could receive another sample's results.** Lineage, coverage and clinical rows were
+  also matched on the text before the first `_`, so `TB_001` and `TB_002` were both keyed `TB`.
+  One could be gated by the other's coverage (turning *Indeterminate* into *Susceptible*), share a
+  lineage, and get no Patient at all. Matching is now exact, and each FHIR step receives exactly
+  one lineage and one coverage file per sample. Sample ids without `_` (e.g. ERR accessions) were
+  not affected. **Re-run 1.6 results whose sample ids contain `_` and share a prefix.**
+- **Dangling references.** v1 always pointed the DiagnosticReport and ServiceRequest at an
+  `Encounter/<id>-encounter` that was never created, and wrote a DiagnosticReport for samples
+  without a Patient. An Encounter is now created. Samples without clinical data get no
+  transaction bundle. The link step fails on any reference that does not resolve.
+- **Placeholders are no longer written.** v1 wrote `"Unknown"` names and birth dates (an invalid
+  `birthDate`), the run time as specimen collection/receipt time, a 2 mL default quantity, and
+  `unknown-org` / `unknown-practitioner` ids. Missing values are now left out and flagged in
+  `clinical_summary.tsv`.
+- **Metadata errors were silent.** A malformed table yielded zero patients. Missing columns,
+  duplicate ids, unreadable files and ids that collide after FHIR-id sanitising are now errors.
+- **Repeat masking was skipped silently** when the mask file path did not exist inside the task.
+  The mask is now a staged input; `NO_FILE` disables it explicitly with a warning.
+- **ONT sample ids kept `.fastq`** (`X_ont.fastq.gz` gave sample `X_ont.fastq`).
+- **VCF-input quality filter** named `INFO/GQ` even when only `FORMAT/GQ` was defined; bcftools
+  rejects such expressions. It is now built from the tags present.
+- **`filter_min_depth` / `filter_min_quality`** were recorded on the Device but not used. The
+  filters had 5 and 20 hard-coded. They now come from the parameters, with the same defaults.
+- **g.HGVS** was `g.{pos}{ref}>{alt}` for every allele, which is valid only for SNVs. Deletions,
+  insertions and delins now use correct notation. The HGVS system URI is `http://varnomen.hgvs.org`.
+- **`tbd-codes-cs` codes that are not in the IG** (`coverage-breadth`, `variant-quality`,
+  `mapping-quality`) now use a project CodeSystem, published in `assets/fhir/`.
+- The 5′/3′ UTR sequence-ontology effects never matched, because of a case mismatch.
+- A variant record that failed to convert now fails the step, instead of producing a report with
+  the variant missing.
+- Patient names no longer appear outside the Patient resource (DiagnosticReport and Specimen
+  displays, Specimen note, HTML report).
+- Upload credentials are no longer passed on the command line, which made them visible in
+  process listings and `.command.sh`.
+
+### Added
+
+- `tbfhir_genomic.py`: the genomic step. It builds the DiagnosticReport, Observations, Device and
+  Provenance, refers to the patient only as `Patient/<id>-patient`, and adds a performer only
+  with `--performer_org_id`.
+- `clinical_to_fhir.py`: the clinical step. It builds Patient, Specimen, **Encounter** and
+  ServiceRequest per sample, plus Organization, Practitioner and PractitionerRole.
+- `link_fhir_bundle.py`: the link step. It builds one `transaction` per sample with references
+  resolved, PUT or POST (`ifNoneExist` on NIK), and `--external_refs` for resources already on the
+  server.
+- `--fhir_profile generic|satusehat`. In `generic`:
+  - DiagnosticReport uses the IG 3.0.0 `genomic-report` profile and LOINC 51969-4 (81247-9 kept as
+    a second coding).
+  - WHO grades use the project `who-catalogue-grade` CodeSystem.
+  - The WHO variant name is recorded in its own component, because a valid p.HGVS needs a protein
+    accession.
+  - Generic output validates with 0 errors against IG 3.0.0.
+- Samplesheet input (`--input`, validated against `assets/schema_input.json`).
+- `nextflow_schema.json` with parameter validation (nf-schema), and a `manifest`.
+- Reference indexing once per run (`PREPARE_REFERENCE`). v1 rebuilt the bwa-mem2 index and the
+  GATK dictionary in every sample.
+- FHIR validation that can fail the run: `--fail_on_validation_error`. It runs offline by default
+  (`--fhir_tx_server n/a`), and the IG is pinned to 3.0.0 (was `#current`).
+- Upload only when `--fhir_server_url` is set, only for linked bundles that passed validation, one
+  at a time. Credentials come from Nextflow secrets.
+- `resourceLimits` from `--max_cpus` / `--max_memory` / `--max_time`, retry on out-of-memory, and
+  GATK `-Xmx` derived from the task memory. v1 asked for 10 GB, which failed on a 9.7 GB host.
+- Profiles `test_stub` (wiring) and `test_vcf` (end to end on synthetic VCFs), and a pytest suite
+  with synthetic fixtures and v1 equivalence goldens.
+- `software_versions.yml` collected from every process.
+- `tools/dev/check_no_phi.py` and a pre-commit configuration (gitleaks).
+- **Container and conda profiles**: `docker`, `podman`, `singularity`, `apptainer`, `conda`,
+  `mamba`. Every process has a pinned BioContainers image and bioconda/conda-forge package, at
+  the tool versions that produced the 1.6 results.
+- GitHub Actions CI: lint, PHI guard, gitleaks, pytest, stub run, the `test_vcf` and `test`
+  profiles under Docker, and the conda profile.
+- `test` profile: one public Illumina isolate (ENA), reduced to the reads over the WHO resistance
+  targets and lineage barcode sites, so the full Illumina path runs in CI.
+
+### Changed
+
+- Scripts moved from `scripts/` to `bin/` and run from `PATH`, which is required for containers.
+  Offline tools moved to `tools/annotation/` and `tools/satusehat/`.
+- `get_access_token.py` and `get_patient_by_nik.py` keep tokens in `$TBFHIR_HOME`
+  (default `~/.tbfhir`), not in the repository. Token files are written owner-only.
+- The clinical metadata parser no longer needs pandas.
+- Trimmomatic is called as `trimmomatic` (or `--trimmomatic_jar`), and GATK as `gatk` from
+  `PATH`. Paths into the installation are no longer hard-coded.
+- The `hpc` profile is now `slurm`, with no queue set.
+- bwa-mem2 runs with `-K 100000000`, so alignments no longer depend on the number of CPUs. On the
+  six v1 validation samples, v1 (1 CPU) and 2.0 (8 CPUs) gave identical variant sets and
+  classifications. Depth, QUAL and MQ differed at a handful of variants.
+- `upload_fhir.py` uses only the Python standard library (`requests` is no longer needed).
+- FHIR validation runs in two steps: the validator (Java image) and its summary (Python image).
+  In containers the validator caches IG packages in the task directory.
+- The metadata editor stores its database and CSV in `$TBFHIR_METADATA_DIR`
+  (default `~/.tbfhir/metadata`, owner-only), not in the repository's `data/`. It finds samples
+  from `--samplesheet`, `--reads-dir` or `--vcf-dir`.
+
+### Removed
+
+- `annotated_to_fhir.py`, `merge_clinical_fhir.py`, `get_versions.py`, `workflows/*.nf` (v1
+  layout).
+- Parameters `version`, `illumina_suffix`, `nanopore_suffix`, `max_threads`, `api_key`, and the
+  defaults pointing at `data/*_metadata.csv`.
+- `data/access_token.json` and `data/input_sso.json` placeholders.
+
+### Breaking Changes
+
+- **Output layout**: see the README.
+  - `fhir/` is now `fhir/genomic/`.
+  - `fhir_merged/` is now `fhir/bundle/`.
+  - `runningstat/` is now `pipeline_info/`.
+  - `qc/` is split into `qc/fastqc`, `qc/multiqc` and `qc/coverage`.
+- **`--results_dir` is now `--outdir`**, with default `./results` (no longer inside the
+  installation).
+- **Inputs must be given**: `--input samplesheet.csv`, or `--reads_dir` / `--vcf_dir`. The
+  defaults no longer point into `data/`.
+- **Clinical metadata is opt-in**: give `--patient_metadata` (and the organization and
+  practitioner tables) to get linked bundles.
+- **Default FHIR profile is `generic`**. Use `--fhir_profile satusehat` for 1.6-compatible
+  SATUSEHAT output.
+- **Genomic bundles contain the DiagnosticReport, Device and Provenance.** These used to be added
+  by the merge step. The performer is set only with `--performer_org_id`; v1 hard-coded a
+  facility id.
+- **`--medaka_model` is required for ONT input.** The silent R9.4.1 default is gone.
+- **Nextflow ≥ 25.04 is required** (the nf-schema plugin needs it).
+
+---
+
 ## [1.6.0] — 2026-09-07
 
 Fixes two defects that silently produced incorrect drug-resistance calls, and changes how

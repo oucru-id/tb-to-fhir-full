@@ -1,9 +1,3 @@
-"""SQLite store for patient clinical metadata.
-
-Every column is TEXT on purpose: nik and the administrative codes are all-digit
-strings whose leading zeros must survive. Storing them as INTEGER would reproduce
-the pandas coercion bug this store exists to avoid.
-"""
 
 import csv
 import os
@@ -35,7 +29,6 @@ def init_db(db_path):
 
 
 def load_all(db_path):
-    """Return every row as a plain dict, sorted by sample_id."""
     with _connect(db_path) as conn:
         rows = conn.execute(
             "SELECT * FROM patient_metadata ORDER BY sample_id"
@@ -44,7 +37,6 @@ def load_all(db_path):
 
 
 def upsert_rows(db_path, rows):
-    """Insert or replace rows keyed on sample_id. Returns the number written."""
     stamped = datetime.now(timezone.utc).isoformat()
     payload = []
     for row in rows:
@@ -81,12 +73,6 @@ def delete_rows(db_path, sample_ids):
 
 
 def seed_from_csv(db_path, csv_path):
-    """One-time import of an existing CSV.
-
-    Uses csv.DictReader with utf-8-sig rather than pandas: pd.read_csv without
-    dtype=str infers the all-digit nik column as int64 and destroys its leading
-    zeros. utf-8-sig also transparently handles the BOM the shipped file carries.
-    """
     if not os.path.exists(csv_path):
         return 0
 

@@ -1,10 +1,4 @@
-"""Column contract for data/patient_clinical_metadata.csv.
 
-The order of COLUMNS is the CSV contract consumed by
-scripts/clinical_metadata_parser.py -- it must not change.
-"""
-
-# Exactly the 29 columns the pipeline reads, in order.
 COLUMNS = [
     "sample_id",
     "family_name",
@@ -37,7 +31,6 @@ COLUMNS = [
     "specimen_received_date",
 ]
 
-# Columns rendered as date pickers. Stored and exported as ISO YYYY-MM-DD strings.
 DATE_COLUMNS = [
     "birth_date",
     "diagnosis_date",
@@ -45,8 +38,6 @@ DATE_COLUMNS = [
     "specimen_received_date",
 ]
 
-# All-digit identifiers whose leading zeros must survive. Never render these as
-# numbers -- a NumberColumn would turn 0000012345678901 into 12345678901.
 DIGIT_STRING_COLUMNS = [
     "nik",
     "province_code",
@@ -57,12 +48,9 @@ DIGIT_STRING_COLUMNS = [
     "age",
 ]
 
-# Values create_patient_resource() knows how to normalise.
 GENDER_OPTIONS = ["", "laki-laki", "perempuan"]
 CITIZENSHIP_OPTIONS = ["", "WNI", "WNA"]
 
-# Specimen defaults matching the current records and the fallbacks hardcoded in
-# scripts/merge_clinical_fhir.py:create_specimen_resource().
 SPECIMEN_TYPE_OPTIONS = {
     "119334006": "Sputum specimen",
     "258607008": "Bronchoalveolar lavage fluid specimen",
@@ -75,7 +63,6 @@ COLLECTION_METHOD_OPTIONS = {
 }
 QUANTITY_UNIT_OPTIONS = ["mL", "L"]
 
-# Applied to a freshly added row so an operator only fills what differs.
 NEW_ROW_DEFAULTS = {
     "gender": "",
     "citizenship_status": "WNI",
@@ -89,8 +76,6 @@ NEW_ROW_DEFAULTS = {
     "specimen_quantity_unit": "mL",
 }
 
-# Columns copied from the most recently saved row when adding a new one, on the
-# assumption that a site processes samples from one catchment area.
 INHERITED_COLUMNS = [
     "city",
     "state",
@@ -100,12 +85,10 @@ INHERITED_COLUMNS = [
     "village_code",
 ]
 
-# Collected but never consumed by scripts/ -- surfaced so the operator knows.
 UNUSED_BY_PIPELINE = ["age", "diagnosis_date", "treatment_history", "contact_number"]
 
 
 def blank_row(sample_id="", inherit_from=None):
-    """Build a new row dict with defaults and optional inherited location fields."""
     row = {col: "" for col in COLUMNS}
     row.update(NEW_ROW_DEFAULTS)
     if inherit_from:

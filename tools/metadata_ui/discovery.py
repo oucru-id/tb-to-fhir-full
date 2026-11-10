@@ -1,9 +1,5 @@
-"""Discover sample IDs from the pipeline input directories.
 
-Mirrors the channel definitions in main.nf so the list shown here matches what
-Nextflow will actually process.
-"""
-
+import csv
 import glob
 import os
 
@@ -15,45 +11,49 @@ def _strip(name, suffixes):
     return name
 
 
-def discover_sample_ids(base_dir):
-    """Return {sample_id: platform} for every input the pipeline would pick up.
-
-    Nanopore IDs are stored WITHOUT the _ont suffix. main.nf carries _ont through
-    to the FHIR sample id, but find_matching_sample() in
-    scripts/clinical_metadata_parser.py normalises it away, so the bare accession
-    is the form that matches from either direction.
-    """
-    ngs_dir = os.path.join(base_dir, "data", "NGS")
-    vcf_dir = os.path.join(base_dir, "data", "VCF")
+def from_samplesheet(path):
     found = {}
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            sample = (row.get("sample") or "").strip()
+            if sample:
+                found[sample] = (row.get("platform") or "").strip() or "unknown"
+    return found
 
-    # Illumina: *_1_illumina.fastq.gz / *_2_illumina.fastq.gz -> one id per pair
-    for path in glob.glob(os.path.join(ngs_dir, "*_illumina.fastq.gz")):
-        name = os.path.basename(path)
-        sample = _strip(name, ["_1_illumina.fastq.gz", "_2_illumina.fastq.gz"])
-        if sample != name:
-            found[sample] = "illumina"
 
-    # Nanopore: *_ont.fastq.gz
-    for path in glob.glob(os.path.join(ngs_dir, "*_ont.fastq.gz")):
-        name = os.path.basename(path)
-        sample = _strip(name, ["_ont.fastq.gz"])
-        if sample != name:
-            found.setdefault(sample, "nanopore")
-
-    # Pre-called VCFs
-    for pattern in ("*.vcf", "*.vcf.gz"):
-        for path in glob.glob(os.path.join(vcf_dir, pattern)):
+def from_directories(reads_dir=None, vcf_dir=None):
+    found = {}
+    if reads_dir:
+        for path in glob.glob(os.path.join(reads_dir, "*_illumina.fastq.gz")):
             name = os.path.basename(path)
-            sample = _strip(name, [".vcf.gz", ".vcf"])
+            sample = _strip(name, ["_1_illumina.fastq.gz", "_2_illumina.fastq.gz"])
             if sample != name:
-                found.setdefault(sample, "vcf")
+                found[sample] = "illumina"
+        for path in glob.glob(os.path.join(reads_dir, "*_ont.fastq.gz")):
+            name = os.path.basename(path)
+            sample = _strip(name, ["_ont.fastq.gz"])
+            if sample != name:
+                found.setdefault(sample, "ont")
+    if vcf_dir:
+        for pattern in ("*.vcf", "*.vcf.gz"):
+            for path in glob.glob(os.path.join(vcf_dir, pattern)):
+                name = os.path.basename(path)
+                sample = _strip(name, [".vcf.gz", ".vcf"])
+                if sample != name:
+                    found.setdefault(sample, "vcf")
+    return found
 
+
+def discover_sample_ids(samplesheet=None, reads_dir=None, vcf_dir=None):
+    found = {}
+    if samplesheet and os.path.exists(samplesheet):
+        found.update(from_samplesheet(samplesheet))
+    for sample, platform in from_directories(reads_dir, vcf_dir).items():
+        found.setdefault(sample, platform)
     return found
 
 
 def group_samples(discovered, existing_ids):
-    """Split discovered vs stored ids into the three states the UI shows."""
     discovered_ids = set(discovered)
     existing = set(existing_ids)
     return {

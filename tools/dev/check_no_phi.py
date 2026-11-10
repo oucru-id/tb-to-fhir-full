@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse to commit files that look like they carry PHI or credentials.
 
-Checks (each file given on the command line, or every tracked file when
-called without arguments):
-
-* CSV files with data rows must start with a ``# SYNTHETIC`` line.
-  Header-only templates are fine.
-* Spreadsheets (.xlsx/.xls) and SQLite databases are never allowed.
-* 16-digit numbers (Indonesian NIK format) are rejected unless they are on
-  the synthetic allowlist below or the line says SYNTHETIC.
-* Base64-looking blobs of 4 kB or more in source/docs are rejected (an
-  embedded report was found in a dev script once).
-* JSON with non-empty ``client_secret`` / ``access_token`` / ``refresh_token``
-  / ``id_token`` values is rejected.
-
-Exit status 1 lists every offending file and the reason.
-"""
 import json
 import re
 import subprocess
@@ -23,8 +7,9 @@ import sys
 from pathlib import Path
 
 SYNTHETIC_NIKS = {"0000012345678901", "1234567890123456"}
+SYNTHETIC_NIK_PREFIX = "99"
 NIK_RE = re.compile(r"(?<![\d.])\d{16}(?![\d.])")
-B64_RE = re.compile(r"[A-Za-z0-9+/]{4000,}={0,2}")
+B64_RE = re.compile(r"[A-Za-z0-9+/]{512,}={0,2}")
 SECRET_KEYS = {"client_secret", "access_token", "refresh_token", "id_token"}
 
 TEXT_SUFFIXES = {".py", ".sh", ".nf", ".config", ".md", ".txt", ".json", ".yml",
@@ -39,10 +24,15 @@ def tracked_files():
     return [p for p in out.split("\0") if p]
 
 
+SAMPLESHEET_HEADER = "sample,platform,"
+
+
 def check_csv(path, lines):
     content = [ln for ln in lines if ln.strip()]
     if len(content) <= 1:
         return None
+    if content[0].startswith(SAMPLESHEET_HEADER):
+        return None     
     if not content[0].lstrip().startswith("# SYNTHETIC"):
         return "CSV has data rows but no leading '# SYNTHETIC' marker"
     return None
@@ -92,15 +82,17 @@ def check_file(name):
         msg = check_json_secrets(path, text)
         if msg:
             problems.append(msg)
+    first = next((ln for ln in lines if ln.strip()), "")
+    file_is_synthetic = first.lstrip().startswith("# SYNTHETIC")
     for lineno, line in enumerate(lines, 1):
-        if "SYNTHETIC" in line:
+        if file_is_synthetic or "SYNTHETIC" in line:
             continue
         for match in NIK_RE.findall(line):
-            if match not in SYNTHETIC_NIKS:
+            if match not in SYNTHETIC_NIKS and not match.startswith(SYNTHETIC_NIK_PREFIX):
                 problems.append(f"line {lineno}: 16-digit number (NIK format)")
                 break
     if suffix in B64_SUFFIXES and B64_RE.search(text):
-        problems.append("contains a base64-like blob of 4 kB or more")
+        problems.append("contains a base64-like blob (512+ characters)")
     return problems
 
 

@@ -1,71 +1,74 @@
 # Clinical Metadata UI
 
-Interactive form for the per-sample patient metadata the TB pipeline consumes,
-replacing hand-editing of `data/patient_clinical_metadata.csv`.
+A form for the per-sample patient table the pipeline reads with `--patient_metadata`. It
+replaces hand-editing the CSV.
 
 ## Run
 
 ```bash
-~/medaka-env/bin/streamlit run tools/metadata_ui/app.py
+mamba env create -f envs/metadata_ui.yml          # once (streamlit + pandas)
+mamba activate tbfhir-metadata-ui
+streamlit run tools/metadata_ui/app.py -- --samplesheet /path/to/samplesheet.csv
 ```
 
-Nothing to install — `medaka-env` already has Streamlit, and `sqlite3` is stdlib.
-Note the pipeline's own `venv/` does **not** have pandas or Streamlit; use `medaka-env`.
+Any Python environment with Streamlit and pandas works, e.g. `~/medaka-env/bin/streamlit`.
+
+| Option | Environment variable | Default |
+|---|---|---|
+| `--metadata-dir` | `TBFHIR_METADATA_DIR` | `~/.tbfhir/metadata` |
+| `--samplesheet` | `TBFHIR_SAMPLESHEET` | none |
+| `--reads-dir`, `--vcf-dir` | `TBFHIR_READS_DIR`, `TBFHIR_VCF_DIR` | none (v1.6 file naming) |
+
+Everything the app writes stays in the metadata directory, which is created owner-only
+(`0700`):
+- `clinical_metadata.db`
+- `patient_clinical_metadata.csv`
+- `patient_clinical_metadata.csv.bak`
+
+Never point the metadata directory inside the repository.
 
 ## How it works
 
-- Edits are held in **SQLite** at `data/clinical_metadata.db`.
-- On first run the database is seeded from the existing CSV.
-- **Export to pipeline CSV** writes `data/patient_clinical_metadata.csv`, which is
-  what `scripts/clinical_metadata_parser.py` reads. Nothing is written to the CSV
-  until you press that button.
+- Edits are held in **SQLite** (`clinical_metadata.db`).
+- On first run the database is seeded from an existing `patient_clinical_metadata.csv` in the
+  metadata directory.
+- **Export to pipeline CSV** writes `patient_clinical_metadata.csv`. Pass that file to the
+  pipeline as `--patient_metadata`. Nothing is written to the CSV until you press the button.
 
-Every column is stored as `TEXT`. This is deliberate: `nik` and the administrative
-codes are all-digit strings whose leading zeros must survive
-(`0000012345678901`, not `12345678901`).
+Every column is stored as `TEXT`, deliberately: `nik` and the administrative codes are all-digit
+strings whose leading zeros must survive (`0000012345678901`, not `12345678901`).
 
-## Sample discovery
+## Sample states
 
-Sample IDs are discovered the same way `main.nf` builds its channels:
+Sample ids come from the samplesheet (`sample` column) or from the folders, and are shown in
+three groups:
 
-| Input | Glob | Sample ID |
-|---|---|---|
-| Illumina | `data/NGS/*_{1,2}_illumina.fastq.gz` | strip the pair suffix |
-| Nanopore | `data/NGS/*_ont.fastq.gz` | strip `_ont.fastq.gz` |
-| VCF | `data/VCF/*.vcf`, `*.vcf.gz` | strip the extension |
-
-Nanopore IDs are stored **without** the `_ont` suffix; `find_matching_sample()`
-normalises it away when the pipeline looks the row up.
-
-Samples are shown in three states:
-
-- **Needs metadata** — an input exists but no row. The pipeline silently skips these:
-  no Patient, Specimen or ServiceRequest is created, while the DiagnosticReport still
-  references a Patient that will not exist.
-- **Complete** — has a row.
-- **Orphaned** — a row exists but the input file is gone.
+- **Needs metadata**: an input exists but there is no row. The pipeline gives these a genomic
+  report only and lists them as `missing_clinical`.
+- **Complete**: has a row.
+- **Orphaned**: a row exists but no input has that sample id.
 
 ## CSV contract
 
-Written by `export.py`, and the format must not drift:
+Written by `export.py`; the format must not drift:
 
-- Exactly the 29 columns in `schema.COLUMNS`, in that order. `updated_at` is internal
-  and is not exported.
+- Exactly the 29 columns in `schema.COLUMNS`, in that order. `updated_at` is internal and not
+  exported.
 - Plain UTF-8, no BOM.
 - `csv.DictWriter`, so addresses containing commas are quoted correctly.
-- Empty values are written as `""`, never `nan` or `None`.
-- Written to a temp file then `os.replace()`d, so a crash cannot truncate the file the
-  pipeline is about to read.
-- The previous file is copied to `data/patient_clinical_metadata.csv.bak` first.
+- Empty values are written as `""`, never `nan` or `None`. The pipeline leaves blank fields out
+  of the FHIR resources.
+- Written to a temp file and then `os.replace()`d, so a crash cannot truncate the file.
+- The previous file is copied to `patient_clinical_metadata.csv.bak` first.
+
+The column meanings are documented in [docs/clinical_metadata.md](../../docs/clinical_metadata.md).
 
 ## Out of scope
 
-Organization and practitioner metadata are single-record config files — both loaders
-only ever read row 0 — so they are still edited by hand in
-`data/organization_metadata.csv` and `data/practitioner_metadata.csv`.
-
-`age`, `diagnosis_date`, `treatment_history` and `contact_number` are collected here
-but are not currently mapped into FHIR by anything in `scripts/`.
+- Organization and practitioner metadata are single-record files edited by hand. Templates are
+  in `assets/metadata_templates/`.
+- `age`, `diagnosis_date`, `treatment_history` and `contact_number` are collected here but not
+  mapped into FHIR.
 
 ## Files
 
@@ -73,6 +76,6 @@ but are not currently mapped into FHIR by anything in `scripts/`.
 |---|---|
 | `schema.py` | The 29-column contract, column widgets, new-row defaults |
 | `store.py` | SQLite init / load / upsert / seed |
-| `discovery.py` | Scan `data/NGS` and `data/VCF` for sample IDs |
+| `discovery.py` | Sample ids from a samplesheet or from folders |
 | `export.py` | Atomic CSV write with backup, and a diff against the file on disk |
 | `app.py` | The Streamlit page |

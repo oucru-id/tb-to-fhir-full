@@ -18,8 +18,6 @@ venv/
 .venv/
 
 # Site-specific inputs: clinical metadata, credentials and sequencing data
-# never belong in the repository. Templates live in assets/metadata_templates/
-# and synthetic fixtures in tests/.
 data/*.csv
 data/*.xlsx
 data/*.db
@@ -38,7 +36,7 @@ site*.json
 *.fhir.json
 !tests/**/*.fhir.json
 
-# Vendored tools are fetched, not committed
+# Tools
 tools/*.jar
 tools/gatk-*/
 
@@ -47,3 +45,7 @@ tools/gatk-*/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Test-profile outputs
+results_test/
+results_test_*/

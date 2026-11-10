@@ -1,11 +1,5 @@
-"""Streamlit form for TB pipeline patient clinical metadata.
 
-Run:  ~/medaka-env/bin/streamlit run tools/metadata_ui/app.py
-
-Edits are held in SQLite (data/clinical_metadata.db) and exported on demand to
-data/patient_clinical_metadata.csv, which is what the pipeline reads.
-"""
-
+import argparse
 import os
 import re
 import sys
@@ -21,9 +15,23 @@ import export
 import schema
 import store
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = BASE_DIR / "data" / "clinical_metadata.db"
-CSV_PATH = BASE_DIR / "data" / "patient_clinical_metadata.csv"
+def parse_args():
+    parser = argparse.ArgumentParser(prog="streamlit run tools/metadata_ui/app.py --")
+    parser.add_argument("--metadata-dir", default=os.environ.get(
+        "TBFHIR_METADATA_DIR", str(Path.home() / ".tbfhir" / "metadata")))
+    parser.add_argument("--samplesheet", default=os.environ.get("TBFHIR_SAMPLESHEET"))
+    parser.add_argument("--reads-dir", default=os.environ.get("TBFHIR_READS_DIR"))
+    parser.add_argument("--vcf-dir", default=os.environ.get("TBFHIR_VCF_DIR"))
+    args, _unknown = parser.parse_known_args(sys.argv[1:])
+    return args
+
+
+ARGS = parse_args()
+METADATA_DIR = Path(ARGS.metadata_dir).expanduser()
+METADATA_DIR.mkdir(parents=True, exist_ok=True)
+os.chmod(METADATA_DIR, 0o700)
+DB_PATH = METADATA_DIR / "clinical_metadata.db"
+CSV_PATH = METADATA_DIR / "patient_clinical_metadata.csv"
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -31,7 +39,6 @@ st.set_page_config(page_title="TB Clinical Metadata", layout="wide")
 
 
 def bootstrap():
-    """Create the DB and, on a first run, seed it from the existing CSV."""
     store.init_db(str(DB_PATH))
     if store.is_empty(str(DB_PATH)) and CSV_PATH.exists():
         seeded = store.seed_from_csv(str(DB_PATH), str(CSV_PATH))
@@ -40,7 +47,6 @@ def bootstrap():
 
 
 def to_frame(rows):
-    """Rows -> DataFrame, with date columns typed so the grid gives date pickers."""
     frame = pd.DataFrame(rows, columns=schema.COLUMNS)
     if frame.empty:
         frame = pd.DataFrame({c: pd.Series(dtype="object") for c in schema.COLUMNS})
@@ -53,7 +59,6 @@ def to_frame(rows):
 
 
 def from_frame(frame):
-    """DataFrame -> rows, converting dates back to ISO strings."""
     rows = []
     for record in frame.to_dict(orient="records"):
         row = {}
@@ -109,9 +114,8 @@ def column_config():
             col.replace("_", " ").title(), format="YYYY-MM-DD",
         )
 
-    # Some of these are also date columns; keep the DateColumn type so the config
-    # stays compatible with the datetime dtype the frame uses.
-    unused_help = "Collected here but not currently mapped into FHIR by scripts/"
+
+    unused_help = "Collected here but not currently mapped into FHIR by bin/"
     for col in schema.UNUSED_BY_PIPELINE:
         label = col.replace("_", " ").title()
         if col in schema.DATE_COLUMNS:
@@ -125,7 +129,6 @@ def column_config():
 
 
 def validate(rows):
-    """Non-blocking checks. Returns a list of human-readable warnings."""
     warnings = []
     for row in rows:
         sample_id = row.get("sample_id") or "(no sample_id)"
@@ -162,31 +165,33 @@ bootstrap()
 
 st.title("TB Clinical Metadata")
 st.caption(
-    "Editing data/patient_clinical_metadata.csv via data/clinical_metadata.db. "
-    "Changes save to the database; use Export to write the CSV the pipeline reads."
+    "Editing {} via {}. Changes save to the database; use Export to write the CSV "
+    "you pass to the pipeline as --patient_metadata.".format(CSV_PATH, DB_PATH.name)
 )
 
 rows = store.load_all(str(DB_PATH))
 existing_ids = [r["sample_id"] for r in rows]
-found = discovery.discover_sample_ids(str(BASE_DIR))
+found = discovery.discover_sample_ids(ARGS.samplesheet, ARGS.reads_dir, ARGS.vcf_dir)
 groups = discovery.group_samples(found, existing_ids)
 
 needs = groups["needs_metadata"]
 orphaned = groups["orphaned"]
 
+if not (ARGS.samplesheet or ARGS.reads_dir or ARGS.vcf_dir):
+    st.info("No samples to match against: start the app with "
+            "`-- --samplesheet samplesheet.csv` (or --reads-dir / --vcf-dir).")
+
 col_a, col_b, col_c = st.columns(3)
-col_a.metric("Samples found in data/", len(found))
+col_a.metric("Samples found", len(found))
 col_b.metric("With metadata", len(groups["complete"]))
 col_c.metric("Needs metadata", len(needs))
 
 if needs:
     with st.container(border=True):
         st.warning(
-            "**{} sample(s) have no metadata row.** The pipeline silently skips "
-            "these -- no Patient, Specimen or ServiceRequest is created, while the "
-            "DiagnosticReport still references a Patient that will not exist.".format(
-                len(needs)
-            )
+            "**{} sample(s) have no metadata row.** The pipeline gives them a genomic "
+            "report only (no Patient, Specimen, Encounter or linked bundle) and lists "
+            "them as missing_clinical.".format(len(needs))
         )
         st.write(", ".join("{} ({})".format(s, found[s]) for s in needs))
         if st.button("Add rows for these samples", type="primary"):
@@ -206,9 +211,7 @@ if orphaned:
 st.subheader("Patient metadata")
 
 if not rows:
-    st.info(
-        "No rows yet. Add inputs to data/NGS/ or data/VCF/, then use the button above."
-    )
+    st.info("No rows yet. Point the app at your samples, then use the button above.")
     st.stop()
 
 edited = st.data_editor(
@@ -266,12 +269,10 @@ with st.expander("Notes on fields"):
         "- **NIK** and the administrative codes are stored as text. Entering them "
         "as numbers elsewhere loses leading zeros (0000012345678901 becomes "
         "12345678901).\n"
-        "- **specimen_collected_date / specimen_received_date** are blank in the "
-        "shipped data, so the pipeline substitutes the run timestamp. Filling them "
-        "here is what makes those FHIR values real.\n"
+        "- **Blank cells are left out** of the FHIR resources (no placeholder, no run "
+        "timestamp), so fill specimen_collected_date / specimen_received_date where known.\n"
         "- **age, diagnosis_date, treatment_history, contact_number** are collected "
-        "but not currently mapped into FHIR by anything in scripts/.\n"
-        "- **Organization and practitioner** metadata are single-record config "
-        "files and are still edited by hand in data/organization_metadata.csv and "
-        "data/practitioner_metadata.csv."
+        "but not currently mapped into FHIR by anything in bin/.\n"
+        "- **Organization and practitioner** metadata are single-record files edited by "
+        "hand; templates are in assets/metadata_templates/."
     )
