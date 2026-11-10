@@ -1,0 +1,49 @@
+# Nextflow
+work/
+results/
+.nextflow/
+.nextflow.log*
+.nextflow.pid
+timeline*.html
+report*.html
+trace*.txt
+dag*.html
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# Site-specific inputs: clinical metadata, credentials and sequencing data
+# never belong in the repository. Templates live in assets/metadata_templates/
+# and synthetic fixtures in tests/.
+data/*.csv
+data/*.xlsx
+data/*.db
+data/NGS/
+data/VCF/
+*.bak
+*.db
+access_token.json
+input_sso.json
+*.secret
+site*.yaml
+site*.json
+.env
+
+# Pipeline outputs
+*.fhir.json
+!tests/**/*.fhir.json
+
+# Vendored tools are fetched, not committed
+tools/*.jar
+tools/gatk-*/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
