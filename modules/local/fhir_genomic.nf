@@ -1,3 +1,4 @@
+include { asFlag } from '../../subworkflows/local/utils_params'
 
 process FHIR_GENOMIC {
     tag "${meta.id}"
@@ -19,7 +20,7 @@ process FHIR_GENOMIC {
     if (params.performer_org_id)           args << "--performer_org_id '${params.performer_org_id}'"
     if (params.performer_org_name)         args << "--performer_org_name '${params.performer_org_name}'"
     if (params.identifier_system_base)     args << "--identifier_system_base '${params.identifier_system_base}'"
-    if (params.legacy_annotation_table)    args << "--legacy-annotation-table"
+    if (asFlag(params.legacy_annotation_table)) args << "--legacy-annotation-table"
     """
     tbfhir_genomic.py \\
         --input ${annotated_vcf} \\

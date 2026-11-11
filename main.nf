@@ -1,7 +1,8 @@
 #!/usr/bin/env nextflow
 
-include { validateParameters; paramsSummaryLog } from 'plugin/nf-schema'
-include { TBFHIR } from './workflows/tbfhir'
+include { paramsSummaryLog    } from 'plugin/nf-schema'
+include { validateTypedParams } from './subworkflows/local/utils_params'
+include { TBFHIR              } from './workflows/tbfhir'
 
 workflow {
     main:
@@ -12,7 +13,12 @@ workflow {
     if (params.results_dir) {
         error "--results_dir was renamed to --outdir in 2.0.0"
     }
-    validateParameters()
+    if (workflow.resume && nextflow.version.toString() in ['26.04.0', '26.04.1']) {
+        log.warn "Nextflow ${nextflow.version} does not re-run a task when a parameter it uses has changed, " +
+                 "so -resume can reuse results made with other settings (fixed in Nextflow 26.04.2). " +
+                 "Update Nextflow, or run without -resume after changing parameters."
+    }
+    validateTypedParams()
     log.info paramsSummaryLog(workflow)
     TBFHIR()
 }

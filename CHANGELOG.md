@@ -36,6 +36,18 @@ With `--fhir_profile satusehat` the linked bundles match 1.6 except for the fixe
 - **Repeat masking was skipped silently** when the mask file path did not exist inside the task.
   The mask is now a staged input; `NO_FILE` disables it explicitly with a warning.
 - **ONT sample ids kept `.fastq`** (`X_ont.fastq.gz` gave sample `X_ont.fastq`).
+- **Command-line parameters on Nextflow 26.04.** 26.04 passes every command-line value as text.
+  Every number given on the command line failed schema validation, `--fhir_validation_batch_size`
+  could not batch, and `false` counted as true. This affected `--skip_fhir_validation false`,
+  `--require_clinical false`, `--publish_clinical false`, `--fail_on_validation_error false`,
+  `--legacy_annotation_table false` and `--fhir_upload_api_key false`. Values are now converted to
+  their schema type before validation and where the pipeline reads them. This works the same on
+  Nextflow 25.04, 25.10 and 26.04.
+- **Validation results of all but one batch were lost.** Files are validated in batches of
+  `--fhir_validation_batch_size` (50). Every batch published `validation.json` and
+  `validation_summary.tsv` to the same path, so a run with more than 50 FHIR files kept only one
+  batch's results. The summaries are now merged into one `validation_summary.tsv`, and each
+  batch's validator output is kept as `validation_<n>.json`.
 - **VCF-input quality filter** named `INFO/GQ` even when only `FORMAT/GQ` was defined; bcftools
   rejects such expressions. It is now built from the tags present.
 - **`filter_min_depth` / `filter_min_quality`** were recorded on the Device but not used. The

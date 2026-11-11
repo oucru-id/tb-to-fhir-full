@@ -31,7 +31,9 @@ output layout and the FHIR structure. Read the
 
 ## Requirements
 
-You need [Nextflow](https://www.nextflow.io/) ≥ 25.04 and **one** of the following:
+You need [Nextflow](https://www.nextflow.io/) ≥ 25.04 and **one** of the following. On 26.04, use
+26.04.2 or later: 26.04.0 and 26.04.1 leave parameters out of the task hash, so `-resume` reuses
+results made with other settings.
 
 | Profile | Provides the tools via |
 |---|---|
@@ -82,7 +84,8 @@ nextflow run . -profile test,docker                 # Illumina path on a 10 MB p
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
 - the PHI guard, gitleaks, ruff and `nextflow lint`
 - pytest
-- the stub run on Nextflow 25.04 and the latest release
+- the stub run on Nextflow 25.04, 25.10 and the latest release, with command-line parameters
+  of every type
 - the three test profiles under Docker, and `test_vcf` under conda
 
 ## Input
@@ -199,6 +202,17 @@ All parameters are described in [nextflow_schema.json](nextflow_schema.json) and
 | `--filter_min_depth` / `--filter_min_quality` | `5` / `20` | variant call filters |
 | `--max_cpus` / `--max_memory` / `--max_time` | `8` / `16 GB` / `24h` | cap on any single task |
 
+Values are checked against the schema type on Nextflow 25.04, 25.10 and 26.04, wherever they are
+given. Switches accept `--skip_fhir_validation`, `--skip_fhir_validation true` and
+`--skip_fhir_validation false`. On Nextflow 25.04 and 25.10, a command-line value that looks like
+a number is turned into one, so leading zeros are lost (`--performer_org_id 0123` becomes `123`).
+Give such ids in a params file instead:
+
+```bash
+printf 'performer_org_id: "0123"\n' > params.yml
+nextflow run . -params-file params.yml --input samplesheet.csv
+```
+
 ### WHO annotation table
 
 The table must have **one row per allele**, with positionally aligned `DRUG` /
@@ -257,7 +271,7 @@ results/
     ├── genomic/            <id>.genomic.fhir.json           (PHI-free)
     ├── clinical/           clinical resources, clinical_summary.tsv   (personal data)
     ├── bundle/             <id>.bundle.fhir.json, link_summary.tsv    (personal data)
-    ├── validation/         validation.json, validation_summary.tsv
+    ├── validation/         validation_summary.tsv, validation_<n>.json (validator output per batch)
     └── upload/             <id>.bundle.upload.json
 ```
 

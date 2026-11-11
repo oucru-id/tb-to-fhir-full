@@ -4,6 +4,7 @@ include { FHIR_CLINICAL                          } from '../../modules/local/fhi
 include { FHIR_LINK                              } from '../../modules/local/fhir_link'
 include { FHIR_VALIDATE; FHIR_VALIDATION_SUMMARY } from '../../modules/local/fhir_validate'
 include { FHIR_UPLOAD; FHIR_UPLOAD_WITH_API_KEY } from '../../modules/local/fhir_upload'
+include { asFlag; asInt                          } from './utils_params'
 
 workflow FHIR {
     take:
@@ -44,18 +45,21 @@ workflow FHIR {
     }
 
     ch_uploadable = ch_bundles
-    if (!params.skip_fhir_validation) {
+    if (!asFlag(params.skip_fhir_validation)) {
+        def batch_size = asInt(params.fhir_validation_batch_size)
         FHIR_VALIDATE(
-            ch_genomic.mix(ch_bundles).toSortedList().flatMap { files -> files.collate(params.fhir_validation_batch_size) },
+            ch_genomic.mix(ch_bundles).toSortedList().flatMap { files -> files.collate(batch_size) },
             file(params.fhir_validator),
             file("${projectDir}/assets/fhir", checkIfExists: true))
         FHIR_VALIDATION_SUMMARY(FHIR_VALIDATE.out.result)
+        FHIR_VALIDATION_SUMMARY.out.summary.collectFile(name: 'validation_summary.tsv', keepHeader: true,
+            sort: { f -> f.text }, storeDir: "${params.outdir}/fhir/validation")
         ch_versions = ch_versions.mix(FHIR_VALIDATE.out.versions.first(), FHIR_VALIDATION_SUMMARY.out.versions.first())
         ch_uploadable = FHIR_VALIDATION_SUMMARY.out.passed.flatten().filter { f -> f.name.endsWith('.bundle.fhir.json') }
     }
 
     if (params.fhir_server_url) {
-        if (params.fhir_upload_api_key) {
+        if (asFlag(params.fhir_upload_api_key)) {
             FHIR_UPLOAD_WITH_API_KEY(ch_uploadable)
             ch_versions = ch_versions.mix(FHIR_UPLOAD_WITH_API_KEY.out.versions.first())
         } else {
