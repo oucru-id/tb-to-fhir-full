@@ -160,7 +160,7 @@ workflow TBFHIR {
              annotation_table, repetitive, PREPARE_REFERENCE.out.fai)
     ch_versions = ch_versions.mix(LINEAGE.out.versions, COVERAGE.out.versions)
 
-    ch_qc = ILLUMINA.out.qc.mix(NANOPORE.out.qc).flatMap { _meta, zips -> [zips].flatten() }
+    ch_qc = ILLUMINA.out.qc.mix(NANOPORE.out.qc).flatMap { _meta, qc_files -> [qc_files].flatten() }
     MULTIQC(ch_qc.collect())
     ch_versions = ch_versions.mix(MULTIQC.out.versions)
 

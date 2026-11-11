@@ -18,7 +18,8 @@ output layout and the FHIR structure. Read the
   resistance loci was sequenced to the required depth and breadth. Otherwise it is
   **Indeterminate**, never silently susceptible.
 - **Lineage classification** from barcode SNPs, with confidence and SNP support.
-- **QC**: FastQC/MultiQC and per-locus coverage over the WHO resistance targets.
+- **QC**: FastQC (Illumina) or NanoPlot (ONT), MultiQC, and per-locus coverage over the WHO
+  resistance targets.
 - **PHI-free genomic FHIR by default**. As in
   [vcf2fhir](https://github.com/elimuinformatics/vcf2fhir), the genomic report refers to the
   patient by id only. Clinical resources are built in a separate, optional step and joined to the
@@ -46,6 +47,8 @@ Every process uses the tool versions that produced the v1.6 results:
 - bcftools 1.19, mosdepth 0.3.6, MultiQC 1.30
 - Python 3.12, Java 21
 
+NanoPlot 1.48.0, the ONT read QC, is new in 2.0 (v1.6 ran FastQC on ONT reads).
+
 Images are pulled only for the processes that run; for example, Illumina-only runs never
 download medaka. The largest images are GATK (~1.5 GB), medaka (2 GB) and chopper (1 GB).
 
@@ -53,7 +56,7 @@ Without a profile you need on `PATH`:
 - for all runs: `bcftools`, `samtools`, `tabix`/`bgzip`, Python 3 (standard library only) and
   Java ≥ 17
 - for Illumina input: `bwa-mem2`, GATK 4 (`gatk`), `trimmomatic`, `fastqc`, `multiqc`, `mosdepth`
-- for ONT input: `minimap2`, `medaka`, `chopper`
+- for ONT input: `minimap2`, `medaka`, `chopper`, `NanoPlot`, `multiqc`, `mosdepth`
 
 If you have only the Debian/Ubuntu `trimmomatic.jar`, pass
 `--trimmomatic_jar /usr/share/java/trimmomatic.jar`.
@@ -243,7 +246,9 @@ a drug was left Indeterminate.
 ```
 results/
 ├── pipeline_info/          execution report, timeline, trace, DAG, software_versions.yml
-├── qc/fastqc/  qc/multiqc/
+├── qc/fastqc/              FastQC reports (Illumina)
+├── qc/nanoplot/            <id>_NanoStats.txt, <id>_NanoPlot-report.html (ONT)
+├── qc/multiqc/             multiqc_report.html
 ├── qc/coverage/            who_targets.bed, <id>.coverage.json, mosdepth beds
 ├── variants/               <id>.filtered_variants.vcf.gz, <id>.annotated_variants.vcf.gz
 ├── lineage/                <id>.lineage.json

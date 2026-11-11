@@ -93,6 +93,9 @@ With `--fhir_profile satusehat` the linked bundles match 1.6 except for the fixe
 
 ### Changed
 
+- **ONT read QC uses NanoPlot 1.48.0** instead of FastQC. FastQC's per-base modules assume
+  short reads of similar length. The reports are in `qc/nanoplot/`, and MultiQC includes the
+  NanoPlot statistics. Illumina reads still use FastQC.
 - Scripts moved from `scripts/` to `bin/` and run from `PATH`, which is required for containers.
   Offline tools moved to `tools/annotation/` and `tools/satusehat/`.
 - `get_access_token.py` and `get_patient_by_nik.py` keep tokens in `$TBFHIR_HOME`
@@ -125,7 +128,7 @@ With `--fhir_profile satusehat` the linked bundles match 1.6 except for the fixe
   - `fhir/` is now `fhir/genomic/`.
   - `fhir_merged/` is now `fhir/bundle/`.
   - `runningstat/` is now `pipeline_info/`.
-  - `qc/` is split into `qc/fastqc`, `qc/multiqc` and `qc/coverage`.
+  - `qc/` is split into `qc/fastqc`, `qc/nanoplot`, `qc/multiqc` and `qc/coverage`.
 - **`--results_dir` is now `--outdir`**, with default `./results` (no longer inside the
   installation).
 - **Inputs must be given**: `--input samplesheet.csv`, or `--reads_dir` / `--vcf_dir`. The

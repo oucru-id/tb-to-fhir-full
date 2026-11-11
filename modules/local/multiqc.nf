@@ -4,7 +4,7 @@ process MULTIQC {
     container "quay.io/biocontainers/multiqc:1.30--pyhdfd78af_0"
 
     input:
-    path qc_files, stageAs: 'fastqc/*'
+    path qc_files, stageAs: 'qc/*'
 
     output:
     path "multiqc_report.html", emit: report
@@ -13,7 +13,7 @@ process MULTIQC {
 
     script:
     """
-    multiqc fastqc --force --outdir . --no-ansi --interactive --zip-data-dir
+    multiqc qc --force --outdir . --no-ansi --interactive --zip-data-dir
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
