@@ -110,17 +110,20 @@ def main():
         gene_col = 'gene'
         effect_col = 'effect'  
         
-        who_classification_col = 'Initial confidence grading ALL dataset'
-        
+        who_classification_col = 'FINAL CONFIDENCE GRADING'
+
         if who_classification_col not in catalogue_df.columns:
-            print(f"Warning: Column '{who_classification_col}' not found. Available columns:")
-            for col in catalogue_df.columns:
-                if 'confidence' in col.lower() or 'grading' in col.lower() or 'initial' in col.lower():
-                    print(f"  - {col}")
-            for alt_col in ['Initial confidence grading ALL dataset', 'confidence', 'grading', 'WHO_classification']:
-                if alt_col in catalogue_df.columns:
-                    who_classification_col = alt_col
-                    break
+            final_cols = [col for col in catalogue_df.columns
+                          if 'final' in str(col).lower() and 'grading' in str(col).lower()]
+            if not final_cols:
+                print(f"ERROR: Column '{who_classification_col}' not found. Grading columns present:")
+                for col in catalogue_df.columns:
+                    if 'confidence' in str(col).lower() or 'grading' in str(col).lower():
+                        print(f"  - {col}")
+                print("Refusing to fall back to an initial grading column: the final grade includes "
+                      "the WHO additional grading criteria (LoF rule, cross-resistance, gDST assays).")
+                sys.exit(1)
+            who_classification_col = final_cols[0]
         
         print(f"Using WHO classification column: {who_classification_col}")
         

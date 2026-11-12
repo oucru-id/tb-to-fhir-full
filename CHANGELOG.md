@@ -17,6 +17,23 @@ With `--fhir_profile satusehat` the linked bundles match 1.6 except for the fixe
 
 ### Fixed
 
+- **WHO grades came from the initial instead of the final grading.** The annotation table was
+  built from `Initial confidence grading ALL dataset`, which leaves out the WHO additional grading
+  criteria (LoF rule, INH-ETO and BDQ-CFZ cross-resistance, WHO-endorsed gDST assays, selection
+  evidence). 925 variant-drug pairs that WHO grades *Assoc w R* or *Assoc w R - Interim* were
+  reported as *Uncertain significance*, so the drug was called susceptible. Examples: fabG1
+  promoter `inhA_c.-779G>T` and `inhA_c.-770T>A/C/G` (INH, ETH), 757 named frameshift and
+  stop-gained variants upgraded under the LoF rule (e.g. `katG_p.Gly124fs`, `ethA_p.Lys200fs`,
+  `ddn_p.Trp88*`), `atpE_p.Glu61Asp` (BDQ) and `Rv0678_p.Leu117Arg` (CFZ). Another 12,332 pairs
+  graded *Not assoc w R - Interim* were shown as *Uncertain significance*. The table is rebuilt
+  from `FINAL CONFIDENCE GRADING` as `data/2026-11-12_annotation_table.tsv.gz` and the 2026-09-07
+  table is removed. Allele rows, genes and coverage targets are unchanged.
+  `prepare_who_annotation.py` now stops if the final grading column is missing instead of falling
+  back to another column.
+- **Illumina calls were filtered on genotype quality (GQ).** GATK's diploid GQ is low for
+  near-fixed variants with a few reference reads, so real resistance variants were dropped
+  (e.g. `gyrA_p.Asp94Gly` at 119/128 reads, QUAL 4247, GQ 15). Illumina calls are now filtered on
+  `QUAL >= filter_min_quality`; ONT and VCF input are unchanged.
 - **Samples could receive another sample's results.** Lineage, coverage and clinical rows were
   also matched on the text before the first `_`, so `TB_001` and `TB_002` were both keyed `TB`.
   One could be gated by the other's coverage (turning *Indeterminate* into *Susceptible*), share a

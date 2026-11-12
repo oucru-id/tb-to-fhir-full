@@ -139,7 +139,7 @@
                     "type": "integer",
                     "default": 20,
                     "minimum": 0,
-                    "description": "Minimum genotype quality (GQ), or QUAL when a VCF has no GQ."
+                    "description": "Minimum call quality: QUAL for Illumina (GATK), GQ for ONT (Medaka), GQ or QUAL for VCF input."
                 },
                 "coverage_min_depth": {
                     "type": "integer",

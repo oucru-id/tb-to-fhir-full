@@ -2,7 +2,7 @@
 """Regenerate the synthetic test fixtures.
 
 Every value here is invented. Variant rows are copied from the WHO
-catalogue annotation table (data/2026-09-07_annotation_table.tsv.gz) so the
+catalogue annotation table (data/2026-09-07_annotation_table.tsv.gz, replaced in 2.0.0) so the
 annotations look exactly like bcftools output; depths, qualities, names,
 NIKs (prefix 99, which is not an Indonesian province code), addresses and
 dates are synthetic.

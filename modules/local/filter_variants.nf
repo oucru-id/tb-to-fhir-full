@@ -25,11 +25,7 @@ process FILTER_VARIANTS {
         filters = """
     bcftools view -v snps,indels -i 'FORMAT/DP>=0 && (GT="0/0" || GT="1/1" || GT="0/1")' -O z -o step2.vcf.gz step1.vcf.gz
     bcftools view -i "FORMAT/DP>=${dp}" -O z -o step3.vcf.gz step2.vcf.gz
-    if zcat step3.vcf.gz | grep -q "^##FORMAT=<ID=GQ"; then
-        bcftools view -i "FORMAT/GQ>=${q}" -O v step3.vcf.gz | bcftools sort -O z -o ${out}
-    else
-        bcftools sort -O z -o ${out} step3.vcf.gz
-    fi"""
+    bcftools view -i "QUAL>=${q}" -O v step3.vcf.gz | bcftools sort -O z -o ${out}"""
     } else if (meta.platform == 'ont') {
         filters = """
     bcftools view -v snps,indels -i 'DP>=0 && (GT="0" || GT="1" || GT="0/1")' -O z -o step2.vcf.gz step1.vcf.gz
