@@ -32,9 +32,6 @@ process FILTER_VARIANTS {
     bcftools view -i "DP>=${dp}" -O z -o step3.vcf.gz step2.vcf.gz
     bcftools view -i "GQ>=${q}" -O v step3.vcf.gz | bcftools sort -O z -o ${out}"""
     } else {
-        // v1.6 used "FORMAT/GQ || INFO/GQ || QUAL" whenever either GQ header was
-        // present; bcftools rejects an expression naming a tag the header lacks,
-        // so the expression is now built from the tags that exist.
         filters = """
     bcftools view -v snps,indels -i 'FORMAT/DP>=0 && (GT="0/0" || GT="1/1" || GT="0/1" || GT="0" || GT="1")' -O z -o step2.vcf.gz step1.vcf.gz
     bcftools view -i "FORMAT/DP>=${dp}" -O z -o step3.vcf.gz step2.vcf.gz
