@@ -1,4 +1,3 @@
-# Nextflow
 work/
 results/
 .nextflow/
@@ -8,16 +7,12 @@ timeline*.html
 report*.html
 trace*.txt
 dag*.html
-
-# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
 venv/
 .venv/
-
-# Site-specific inputs: clinical metadata, credentials and sequencing data
 data/*.csv
 data/*.xlsx
 data/*.db
@@ -31,21 +26,14 @@ input_sso.json
 site*.yaml
 site*.json
 .env
-
-# Pipeline outputs
 *.fhir.json
 !tests/**/*.fhir.json
-
-# Tools
 tools/*.jar
 tools/gatk-*/
-
-# Editors / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Test-profile outputs
 results_test/
 results_test_*/
