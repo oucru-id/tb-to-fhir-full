@@ -17,7 +17,7 @@ Any Python environment with Streamlit and pandas works, e.g. `~/medaka-env/bin/s
 |---|---|---|
 | `--metadata-dir` | `TBFHIR_METADATA_DIR` | `~/.tbfhir/metadata` |
 | `--samplesheet` | `TBFHIR_SAMPLESHEET` | none |
-| `--reads-dir`, `--vcf-dir` | `TBFHIR_READS_DIR`, `TBFHIR_VCF_DIR` | none (v1.6 file naming) |
+| `--reads-dir`, `--vcf-dir` | `TBFHIR_READS_DIR`, `TBFHIR_VCF_DIR` | none |
 
 Everything the app writes stays in the metadata directory, which is created owner-only
 (`0700`):
