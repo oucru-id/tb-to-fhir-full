@@ -18,7 +18,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -46,7 +46,7 @@ jobs:
       matrix:
         python: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -60,7 +60,7 @@ jobs:
       matrix:
         nextflow: ["25.04.6", "25.10.2", "latest-everything"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: nf-core/setup-nextflow@v2
         with:
           version: ${{ matrix.nextflow }}
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pytest, stub]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: nf-core/setup-nextflow@v2
         with:
           version: latest-everything
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pytest, stub]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: nf-core/setup-nextflow@v2
         with:
           version: latest-everything
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pytest, stub]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
