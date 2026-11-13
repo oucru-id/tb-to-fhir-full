@@ -1,0 +1,7 @@
+sample,platform,fastq_1,fastq_2,vcf
+RR01,vcf,,,tests/data/vcf/RR01.vcf
+MDR01,vcf,,,tests/data/vcf/MDR01.vcf
+XDR01,vcf,,,tests/data/vcf/XDR01.vcf
+UNC01,vcf,,,tests/data/vcf/UNC01.vcf
+TB_001,vcf,,,tests/data/vcf/TB_001.vcf
+TB_002,vcf,,,tests/data/vcf/TB_002.vcf

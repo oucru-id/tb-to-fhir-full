@@ -1,0 +1,873 @@
+{
+  "sample_id": "XDR01",
+  "coverage_assessed": true,
+  "min_depth": 10,
+  "min_breadth": 0.95,
+  "genes": {
+    "PPE35": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "Rv0010c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid"
+      ]
+    },
+    "Rv0565c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide"
+      ]
+    },
+    "Rv0678": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Clofazimine"
+      ]
+    },
+    "Rv1129c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid",
+        "Levofloxacin",
+        "Moxifloxacin",
+        "Rifampicin"
+      ]
+    },
+    "Rv1258c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid",
+        "Pyrazinamide",
+        "Streptomycin"
+      ]
+    },
+    "Rv1979c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Clofazimine"
+      ]
+    },
+    "Rv2477c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Ethambutol",
+        "Kanamycin",
+        "Levofloxacin",
+        "Moxifloxacin",
+        "Rifampicin",
+        "Streptomycin"
+      ]
+    },
+    "Rv2680": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Capreomycin"
+      ]
+    },
+    "Rv2681": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Capreomycin"
+      ]
+    },
+    "Rv2752c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol",
+        "Isoniazid",
+        "Levofloxacin",
+        "Moxifloxacin",
+        "Rifampicin"
+      ]
+    },
+    "Rv2983": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Clofazimine",
+        "Delamanid"
+      ]
+    },
+    "Rv3083": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide"
+      ]
+    },
+    "Rv3236c": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "aftB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "ahpC": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid"
+      ]
+    },
+    "atpE": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline"
+      ]
+    },
+    "bacA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Capreomycin",
+        "Kanamycin",
+        "Streptomycin"
+      ]
+    },
+    "ccsA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Capreomycin",
+        "Kanamycin"
+      ]
+    },
+    "clpC1": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "ddn": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Delamanid"
+      ]
+    },
+    "dnaA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid"
+      ]
+    },
+    "eis": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Kanamycin"
+      ]
+    },
+    "embA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "embB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "embC": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "embR": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "ethA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide"
+      ]
+    },
+    "ethR": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide"
+      ]
+    },
+    "fbiA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Clofazimine",
+        "Delamanid"
+      ]
+    },
+    "fbiB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Clofazimine",
+        "Delamanid"
+      ]
+    },
+    "fbiC": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Clofazimine",
+        "Delamanid"
+      ]
+    },
+    "fgd1": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Clofazimine",
+        "Delamanid"
+      ]
+    },
+    "gid": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Streptomycin"
+      ]
+    },
+    "glpK": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol",
+        "Isoniazid",
+        "Levofloxacin",
+        "Moxifloxacin",
+        "Rifampicin",
+        "Streptomycin"
+      ]
+    },
+    "gyrA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Levofloxacin",
+        "Moxifloxacin"
+      ]
+    },
+    "gyrB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Levofloxacin",
+        "Moxifloxacin"
+      ]
+    },
+    "hadA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid"
+      ]
+    },
+    "inhA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide",
+        "Isoniazid"
+      ]
+    },
+    "katG": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Isoniazid"
+      ]
+    },
+    "lpqB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Rifampicin"
+      ]
+    },
+    "mmpL5": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Clofazimine"
+      ]
+    },
+    "mmpS5": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Clofazimine"
+      ]
+    },
+    "mshA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethionamide",
+        "Isoniazid"
+      ]
+    },
+    "mtrA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Rifampicin"
+      ]
+    },
+    "mtrB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Rifampicin"
+      ]
+    },
+    "ndh": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Delamanid",
+        "Ethionamide",
+        "Isoniazid"
+      ]
+    },
+    "nusG": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Rifampicin"
+      ]
+    },
+    "panD": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "pepQ": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Bedaquiline",
+        "Clofazimine"
+      ]
+    },
+    "pncA": {
+      "bases": 1500,
+      "mean_depth": 7.5,
+      "breadth_at_10x": 0.42,
+      "adequate": false,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "rplC": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Linezolid"
+      ]
+    },
+    "rpoA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Rifampicin"
+      ]
+    },
+    "rpoB": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Rifampicin"
+      ]
+    },
+    "rpoC": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Rifampicin"
+      ]
+    },
+    "rpsA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "rpsL": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Streptomycin"
+      ]
+    },
+    "rrl": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Capreomycin",
+        "Linezolid"
+      ]
+    },
+    "rrs": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Capreomycin",
+        "Kanamycin",
+        "Streptomycin"
+      ]
+    },
+    "sigE": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Pyrazinamide"
+      ]
+    },
+    "tlyA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Capreomycin"
+      ]
+    },
+    "tsnR": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Linezolid"
+      ]
+    },
+    "ubiA": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Ethambutol"
+      ]
+    },
+    "whiB6": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Capreomycin",
+        "Kanamycin"
+      ]
+    },
+    "whiB7": {
+      "bases": 1500,
+      "mean_depth": 100.0,
+      "breadth_at_10x": 1.0,
+      "adequate": true,
+      "drugs": [
+        "Amikacin",
+        "Kanamycin",
+        "Streptomycin"
+      ]
+    }
+  },
+  "drugs": {
+    "Amikacin": {
+      "loci": [
+        "Rv2477c",
+        "bacA",
+        "ccsA",
+        "eis",
+        "rrs",
+        "whiB6",
+        "whiB7"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Bedaquiline": {
+      "loci": [
+        "Rv0678",
+        "Rv1979c",
+        "atpE",
+        "lpqB",
+        "mmpL5",
+        "mmpS5",
+        "mtrA",
+        "mtrB",
+        "pepQ"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Capreomycin": {
+      "loci": [
+        "Rv2680",
+        "Rv2681",
+        "bacA",
+        "ccsA",
+        "rrl",
+        "rrs",
+        "tlyA",
+        "whiB6"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Clofazimine": {
+      "loci": [
+        "Rv0678",
+        "Rv1979c",
+        "Rv2983",
+        "fbiA",
+        "fbiB",
+        "fbiC",
+        "fgd1",
+        "mmpL5",
+        "mmpS5",
+        "pepQ"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Delamanid": {
+      "loci": [
+        "Rv2983",
+        "ddn",
+        "fbiA",
+        "fbiB",
+        "fbiC",
+        "fgd1",
+        "ndh"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Ethambutol": {
+      "loci": [
+        "Rv2477c",
+        "Rv2752c",
+        "aftB",
+        "embA",
+        "embB",
+        "embC",
+        "embR",
+        "glpK",
+        "ubiA"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Ethionamide": {
+      "loci": [
+        "Rv0565c",
+        "Rv3083",
+        "ethA",
+        "ethR",
+        "inhA",
+        "mshA",
+        "ndh"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Isoniazid": {
+      "loci": [
+        "Rv0010c",
+        "Rv1129c",
+        "Rv1258c",
+        "Rv2752c",
+        "ahpC",
+        "dnaA",
+        "glpK",
+        "hadA",
+        "inhA",
+        "katG",
+        "mshA",
+        "ndh"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Kanamycin": {
+      "loci": [
+        "Rv2477c",
+        "bacA",
+        "ccsA",
+        "eis",
+        "rrs",
+        "whiB6",
+        "whiB7"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Levofloxacin": {
+      "loci": [
+        "Rv1129c",
+        "Rv2477c",
+        "Rv2752c",
+        "glpK",
+        "gyrA",
+        "gyrB"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Linezolid": {
+      "loci": [
+        "rplC",
+        "rrl",
+        "tsnR"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Moxifloxacin": {
+      "loci": [
+        "Rv1129c",
+        "Rv2477c",
+        "Rv2752c",
+        "glpK",
+        "gyrA",
+        "gyrB"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Pyrazinamide": {
+      "loci": [
+        "PPE35",
+        "Rv1258c",
+        "Rv3236c",
+        "clpC1",
+        "panD",
+        "pncA",
+        "rpsA",
+        "sigE"
+      ],
+      "assessable": false,
+      "inadequate_loci": [
+        "pncA"
+      ],
+      "loci_without_coverage_data": []
+    },
+    "Rifampicin": {
+      "loci": [
+        "Rv1129c",
+        "Rv2477c",
+        "Rv2752c",
+        "glpK",
+        "lpqB",
+        "mtrA",
+        "mtrB",
+        "nusG",
+        "rpoA",
+        "rpoB",
+        "rpoC"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    },
+    "Streptomycin": {
+      "loci": [
+        "Rv1258c",
+        "Rv2477c",
+        "bacA",
+        "gid",
+        "glpK",
+        "rpsL",
+        "rrs",
+        "whiB7"
+      ],
+      "assessable": true,
+      "inadequate_loci": [],
+      "loci_without_coverage_data": []
+    }
+  }
+}

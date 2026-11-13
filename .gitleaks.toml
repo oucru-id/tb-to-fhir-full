@@ -1,0 +1,9 @@
+title = "TBtoFHIR"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Genome sequence: runs of A/C/G/T match generic key patterns such as AWS access key ids"
+regexes = ['''^[ACGTN]+$''']
+paths = ['''(^|/)data/[^/]+\.fasta$''']

@@ -1,0 +1,11 @@
+
+name: tbfhir-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - openpyxl=3.1.5
+  - requests=2.32
+  - pytest=8
+  - ruff
+  - pandas=2.0   

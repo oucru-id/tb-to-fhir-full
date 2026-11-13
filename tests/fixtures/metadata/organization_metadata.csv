@@ -1,0 +1,3 @@
+# SYNTHETIC test fixture - invented values, not patient data
+org_id,name,alias,type_code,type_display,type_text,phone,email,address_line,city,state,country,province_code,city_code,district_code,latitude,longitude
+99000001,Laboratorium Sintetis,LabSin,prov,Healthcare Provider,Laboratory,+62-800-0000-0000,lab@example.org,Jl. Contoh No. 99,Kota Contoh,Provinsi Uji,ID,99,9901,990101,-7.0001,110.0001

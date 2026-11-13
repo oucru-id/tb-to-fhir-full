@@ -1,0 +1,2 @@
+sample,platform,fastq_1,fastq_2,vcf
+ERR1873531,illumina,tests/data/illumina/ERR1873531_targets_1.fastq.gz,tests/data/illumina/ERR1873531_targets_2.fastq.gz,

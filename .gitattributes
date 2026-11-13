@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.py   text eol=lf
+*.sh   text eol=lf
+*.nf   text eol=lf
+*.config text eol=lf
+
+# Binary data
+*.gz   binary
+*.bgz  binary
+*.tbi  binary
+*.csi  binary
+*.bam  binary
+*.bai  binary
+*.xlsx binary
+*.jar  binary
+*.db   binary
+*.png  binary
+*.zip  binary

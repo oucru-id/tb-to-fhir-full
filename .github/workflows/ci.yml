@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "2.0.0-dev"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NXF_ANSI_LOG: false
+  NXF_DISABLE_CHECK_LATEST: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: PHI / credential guard
+        run: python3 tools/dev/check_no_phi.py
+      - name: gitleaks (full history)
+        run: >-
+          docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.18.4 -c
+          "git config --global --add safe.directory /repo &&
+          gitleaks detect --source /repo --config /repo/.gitleaks.toml --redact -v"
+      - name: ruff
+        run: pipx run ruff check --select E9,F63,F7,F82 bin tests tools
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: latest-everything
+      - name: nextflow lint
+        run: nextflow lint .
+
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install pytest openpyxl
+      - run: pytest -q
+
+  stub:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nextflow: ["25.04.6", "25.10.2", "latest-everything"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: ${{ matrix.nextflow }}
+      - run: nextflow run . -profile test_stub -stub-run
+      - name: Command-line parameters of every type
+        run: |
+          nextflow run . -profile test_stub -stub-run --outdir results_cli \
+            --filter_min_depth 7 --coverage_min_breadth 0.9 --fhir_validation_batch_size 2 \
+            --skip_fhir_validation false --require_clinical false --publish_clinical false \
+            --fail_on_validation_error false --performer_org_id 99000001
+          test -e results_cli/qc/nanoplot/STUBONT_NanoStats.txt
+          test ! -e results_cli/fhir/clinical
+          test "$(ls results_cli/fhir/validation/validation_*.json | wc -l)" -gt 1
+          test "$(tail -n +2 results_cli/fhir/validation/validation_summary.tsv | wc -l)" -eq \
+               "$(ls results_cli/fhir/genomic/*.json results_cli/fhir/bundle/*.bundle.fhir.json 2>/dev/null | wc -l)"
+      - name: Invalid parameters are rejected
+        run: |
+          rejected() {
+            if nextflow run . -profile test_stub -stub-run --outdir results_bad "$1" "$2" > bad.log 2>&1; then exit 1; fi
+            grep -qF -- "$1 ($2)" bad.log
+          }
+          rejected --filter_min_depth five
+          rejected --skip_fhir_validation maybe
+          rejected --coverage_min_breadth 2
+
+  test_vcf:
+    runs-on: ubuntu-latest
+    needs: [pytest, stub]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: latest-everything
+      - name: VCF input end to end (Docker), validation must report 0 errors
+        run: >-
+          nextflow run . -profile test_vcf,docker
+          --filter_min_depth 5 --coverage_min_breadth 0.95 --fhir_validation_batch_size 4
+          --fail_on_validation_error true --require_clinical false --publish_clinical false
+      - name: Check outputs
+        run: |
+          test "$(ls results_test_vcf/fhir/genomic/*.genomic.fhir.json | wc -l)" -eq 6
+          test "$(ls results_test_vcf/fhir/bundle/*.bundle.fhir.json | wc -l)" -eq 5
+          test ! -e results_test_vcf/fhir/clinical
+          test "$(ls results_test_vcf/fhir/validation/validation_*.json | wc -l)" -eq 3
+          test "$(tail -n +2 results_test_vcf/fhir/validation/validation_summary.tsv | wc -l)" -eq 11
+          grep -q -- '--fail_on_error' work/*/*/.command.sh
+          if grep -q -- '--require_clinical' work/*/*/.command.sh; then exit 1; fi
+          awk -F'\t' 'NR > 1 && $2 != 0 {print; bad = 1} END {exit bad}' results_test_vcf/fhir/validation/validation_summary.tsv
+
+  test_illumina:
+    runs-on: ubuntu-latest
+    needs: [pytest, stub]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: latest-everything
+      - name: Illumina path on the ERR1873531 subset (Docker)
+        run: nextflow run . -profile test,docker
+      - name: Check classification and validation
+        run: |
+          grep -q '"text": "MDR-TB"' results_test/fhir/genomic/ERR1873531.genomic.fhir.json
+          awk -F'\t' 'NR > 1 && $2 != 0 {print; bad = 1} END {exit bad}' results_test/fhir/validation/validation_summary.tsv
+
+  test_conda:
+    runs-on: ubuntu-latest
+    needs: [pytest, stub]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge,bioconda
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: latest-everything
+      - name: VCF input end to end (conda)
+        shell: bash -el {0}
+        run: nextflow run . -profile test_vcf,conda

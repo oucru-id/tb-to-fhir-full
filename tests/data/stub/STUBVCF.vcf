@@ -1,0 +1,9 @@
+##fileformat=VCFv4.2
+##source=TBtoFHIR synthetic test input (SYNTHETIC - not patient data)
+##contig=<ID=NC_000962.3,length=4411532>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="Mapping quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	STUBVCF

@@ -1,0 +1,42 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "who-catalogue-grade",
+  "url": "http://terminology.spheres.id/CodeSystem/who-catalogue-grade",
+  "version": "2.0.0",
+  "name": "WhoCatalogueGrade",
+  "title": "WHO TB mutation catalogue confidence grading",
+  "status": "active",
+  "experimental": false,
+  "publisher": "OUCRU Indonesia - TBtoFHIR",
+  "description": "Final confidence grading of a (variant, drug) pair in the WHO catalogue of mutations in Mycobacterium tuberculosis complex and their association with drug resistance (2nd ed., 2023).",
+  "caseSensitive": true,
+  "content": "complete",
+  "count": 5,
+  "concept": [
+    {
+      "code": "1",
+      "display": "Assoc w R",
+      "definition": "Group 1: associated with resistance"
+    },
+    {
+      "code": "2",
+      "display": "Assoc w R - Interim",
+      "definition": "Group 2: associated with resistance - interim"
+    },
+    {
+      "code": "3",
+      "display": "Uncertain significance",
+      "definition": "Group 3: uncertain significance"
+    },
+    {
+      "code": "4",
+      "display": "Not assoc w R - Interim",
+      "definition": "Group 4: not associated with resistance - interim"
+    },
+    {
+      "code": "5",
+      "display": "Not assoc w R",
+      "definition": "Group 5: not associated with resistance"
+    }
+  ]
+}

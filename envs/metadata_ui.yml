@@ -1,0 +1,7 @@
+name: tbfhir-metadata-ui
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - streamlit=1.56
+  - pandas=2.2

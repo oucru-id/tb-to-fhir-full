@@ -1,0 +1,44 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/oucru-id/tb-to-fhir-full/main/assets/schema_input.json",
+    "title": "TBtoFHIR samplesheet",
+    "description": "One row per sample: sample,platform,fastq_1,fastq_2,vcf",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "sample": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$",
+                "errorMessage": "sample: 1-40 letters, digits, '.', '_' or '-', starting with a letter or digit",
+                "meta": ["id"]
+            },
+            "platform": {
+                "type": "string",
+                "enum": ["illumina", "ont", "vcf"],
+                "errorMessage": "platform must be illumina, ont or vcf",
+                "meta": ["platform"]
+            },
+            "fastq_1": {
+                "type": "string",
+                "format": "file-path",
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "errorMessage": "fastq_1 must be a gzipped FASTQ (.fastq.gz / .fq.gz) without spaces"
+            },
+            "fastq_2": {
+                "type": "string",
+                "format": "file-path",
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "errorMessage": "fastq_2 must be a gzipped FASTQ (.fastq.gz / .fq.gz) without spaces"
+            },
+            "vcf": {
+                "type": "string",
+                "format": "file-path",
+                "pattern": "^\\S+\\.vcf(\\.gz)?$",
+                "errorMessage": "vcf must end in .vcf or .vcf.gz"
+            }
+        },
+        "required": ["sample", "platform"]
+    },
+    "uniqueEntries": ["sample"]
+}

@@ -1,0 +1,37 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "mtb-lineage-attribute",
+  "url": "http://terminology.spheres.id/CodeSystem/mtb-lineage-attribute",
+  "version": "2.0.0",
+  "name": "MtbLineageAttribute",
+  "title": "M. tuberculosis lineage call attributes",
+  "status": "active",
+  "experimental": false,
+  "publisher": "OUCRU Indonesia - TBtoFHIR",
+  "description": "Attributes of a barcode-SNP lineage call.",
+  "caseSensitive": true,
+  "content": "complete",
+  "count": 5,
+  "concept": [
+    {
+      "code": "lineage-family",
+      "display": "Lineage family"
+    },
+    {
+      "code": "lineage-confidence",
+      "display": "Lineage call confidence"
+    },
+    {
+      "code": "lineage-score",
+      "display": "Lineage barcode score"
+    },
+    {
+      "code": "barcode-snps-matched",
+      "display": "Barcode SNPs matched"
+    },
+    {
+      "code": "barcode-snps-total",
+      "display": "Barcode SNPs examined"
+    }
+  ]
+}

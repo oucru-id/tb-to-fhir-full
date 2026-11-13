@@ -1,0 +1,37 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "pipeline-property",
+  "url": "http://terminology.spheres.id/CodeSystem/pipeline-property",
+  "version": "2.0.0",
+  "name": "PipelineProperty",
+  "title": "TBtoFHIR pipeline properties",
+  "status": "active",
+  "experimental": false,
+  "publisher": "OUCRU Indonesia - TBtoFHIR",
+  "description": "Device.property types recording how the pipeline was configured.",
+  "caseSensitive": true,
+  "content": "complete",
+  "count": 5,
+  "concept": [
+    {
+      "code": "source-repository",
+      "display": "Source repository"
+    },
+    {
+      "code": "filter-min-depth",
+      "display": "Minimum read depth filter"
+    },
+    {
+      "code": "filter-min-quality",
+      "display": "Minimum variant quality filter"
+    },
+    {
+      "code": "coverage-min-depth",
+      "display": "Coverage assessability depth threshold"
+    },
+    {
+      "code": "coverage-min-breadth",
+      "display": "Coverage assessability breadth threshold"
+    }
+  ]
+}

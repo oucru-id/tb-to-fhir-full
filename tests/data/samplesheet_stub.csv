@@ -1,0 +1,4 @@
+sample,platform,fastq_1,fastq_2,vcf
+STUBILL,illumina,tests/data/stub/STUBILL_1.fastq.gz,tests/data/stub/STUBILL_2.fastq.gz,
+STUBONT,ont,tests/data/stub/STUBONT.fastq.gz,,
+STUBVCF,vcf,,,tests/data/stub/STUBVCF.vcf
