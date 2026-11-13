@@ -1,7 +1,5 @@
-# Normalise all text files to LF in the repository.
 * text=auto eol=lf
 
-# Executables must keep LF so their shebang works.
 *.py   text eol=lf
 *.sh   text eol=lf
 *.nf   text eol=lf
