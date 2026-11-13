@@ -15,7 +15,7 @@ workflow {
     }
     if (workflow.resume && nextflow.version.toString() in ['26.04.0', '26.04.1']) {
         log.warn "Nextflow ${nextflow.version} does not re-run a task when a parameter it uses has changed, " +
-                 "so -resume can reuse results made with other settings (fixed in Nextflow 26.04.2). " +
+                 "so -resume can reuse results made with other settings. " +
                  "Update Nextflow, or run without -resume after changing parameters."
     }
     validateTypedParams()
