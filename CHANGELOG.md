@@ -6,6 +6,8 @@
 
 - **Coverage gate limited to resistance loci.**
 - medaka starts with 11 GB of memory; with 6 GB it was killed and retried on every ONT sample.
+- The default ONT minimum read length (`--nanopore_min_l`) is 200 bp instead of 500 bp. On runs with
+  short reads, 500 bp discarded most of the data and left drugs Indeterminate.
 
 ## [2.0.0]
 
