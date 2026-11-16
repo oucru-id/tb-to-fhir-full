@@ -2,39 +2,9 @@
 
 ---
 
-## [Unreleased]
+## [2.0.1]
 
-- **Coverage gate limited to resistance loci.** A drug was reported susceptible only when every
-  gene with any WHO catalogue entry for it was covered, including genes whose entries are all
-  uncertain or not associated with resistance (for rifampicin, 11 genes although only `rpoB`
-  carries graded resistance variants). Poor coverage of genes such as `glpK`, `tsnR`, `ccsA`,
-  `mshA` or `rpoA` made many drugs Indeterminate. Now only loci with a WHO grade 1-2
-  (`Assoc w R`, including interim) variant for the drug gate it: `who_targets.bed` gains a
-  `gating_drugs` column, and `<id>.coverage.json` lists `gating_loci` and
-  `inadequate_other_loci` per drug. Loci whose variants can make a drug resistant still have to
-  reach `--coverage_min_breadth` at `--coverage_min_depth`. On the 1000-isolate Spies et al. set,
-  Indeterminate calls fall from 1081 to 604 (of 12,000); of the 477 calls that become
-  susceptible, 474 agree with the phenotype, 2 are phenotypically resistant and 1 has no
-  phenotype.
-- **Lineage calls for H37Rv-like isolates.** The barcode markers of `lineage4` and `lineage4.9`
-  equal the H37Rv base, so they never appear in a VCF and lineage 4.9 isolates matched no marker.
-  The new `BARCODE_PILEUP` step counts alleles at every barcode site in the BAM
-  (`bcftools mpileup`), so reference-allele markers are seen, and a site below
-  `--filter_min_depth` counts as no data. For VCF input, a site missing from the VCF is taken as
-  the reference only when the VCF is genome-wide (at least 50 SNPs); such calls are at most
-  `medium` confidence.
-- **No more fallback lineage.** With no matching marker the classifier reported the first lineage
-  of the barcode file (`lineage4.2.2.1`, confidence `low`), even for samples without data. It now
-  reports `unknown` with a `reason`, and the lineage Observation is left out of the FHIR output.
-- **Deepest consistent sublineage, independent of file order.** The call is the deepest lineage
-  with most of its markers present and no contradicted parent (for example `lineage2.2.1.1`
-  instead of `lineage2`). A lone marker of another lineage no longer wins. If two sibling
-  sublineages are both supported, their common parent is reported with `ambiguous_sublineages`
-  and confidence `low`.
-- `<id>.lineage.json` adds `lineage_path`, `evidence` (`pileup` or `vcf`), `min_depth`,
-  `possible_mixed_infection`, `minor_lineages` (lineages at 10-50% allele fraction),
-  `ambiguous_sublineages`, `reason` and, for VCF input, `vcf_snps` and `reference_inferred`.
-  `score` is now the mean allele fraction of the called lineage's markers.
+- **Coverage gate limited to resistance loci.**
 
 ## [2.0.0]
 
