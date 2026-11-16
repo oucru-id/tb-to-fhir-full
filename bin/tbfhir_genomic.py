@@ -225,6 +225,8 @@ def build_susceptibility_panel(ctx, resistant_drugs, coverage_info):
                 reason = "insufficient coverage at: " + ", ".join(drug_coverage['inadequate_loci'])
             elif drug_coverage.get('loci_without_coverage_data'):
                 reason = "no coverage data for: " + ", ".join(drug_coverage['loci_without_coverage_data'])
+            elif drug_coverage.get('reason'):
+                reason = drug_coverage['reason']
             elif not drug_coverage:
                 reason = ('the WHO mutation catalogue contains no graded variants for this '
                           'drug, so genotypic prediction is not possible; phenotypic DST is '

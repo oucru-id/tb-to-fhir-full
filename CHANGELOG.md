@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+- **Coverage gate limited to resistance loci.** A drug was reported susceptible only when every
+  gene with any WHO catalogue entry for it was covered, including genes whose entries are all
+  uncertain or not associated with resistance (for rifampicin, 11 genes although only `rpoB`
+  carries graded resistance variants). Poor coverage of genes such as `glpK`, `tsnR`, `ccsA`,
+  `mshA` or `rpoA` made many drugs Indeterminate. Now only loci with a WHO grade 1-2
+  (`Assoc w R`, including interim) variant for the drug gate it: `who_targets.bed` gains a
+  `gating_drugs` column, and `<id>.coverage.json` lists `gating_loci` and
+  `inadequate_other_loci` per drug. Loci whose variants can make a drug resistant still have to
+  reach `--coverage_min_breadth` at `--coverage_min_depth`. On the 1000-isolate Spies et al. set,
+  Indeterminate calls fall from 1081 to 604 (of 12,000); of the 477 calls that become
+  susceptible, 474 agree with the phenotype, 2 are phenotypically resistant and 1 has no
+  phenotype.
 - **Lineage calls for H37Rv-like isolates.** The barcode markers of `lineage4` and `lineage4.9`
   equal the H37Rv base, so they never appear in a VCF and lineage 4.9 isolates matched no marker.
   The new `BARCODE_PILEUP` step counts alleles at every barcode site in the BAM

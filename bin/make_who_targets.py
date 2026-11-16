@@ -5,6 +5,8 @@ import gzip
 import sys
 from collections import defaultdict
 
+RESISTANCE_GRADE = 'Assoc w R'
+
 
 def load_gene_spans(annotation_table):
     spans = {}
@@ -17,6 +19,7 @@ def load_gene_spans(annotation_table):
                 continue
 
             chrom, pos, ref, alt, gene, drug = fields[:6]
+            grades = fields[7].split(',')
 
             if not gene or gene.lower() == 'unknown':
                 continue
@@ -36,14 +39,18 @@ def load_gene_spans(annotation_table):
                     'chrom': chrom,
                     'intervals': [],
                     'drugs': set(),
+                    'gating': set(),
                 }
                 entry = spans[gene]
             entry['intervals'].append((position, end))
 
-            for one_drug in drug.split(','):
+            for index, one_drug in enumerate(drug.split(',')):
                 one_drug = one_drug.strip()
                 if one_drug and one_drug.lower() != 'unknown':
                     entry['drugs'].add(one_drug)
+                    grade = grades[index].strip() if index < len(grades) else ''
+                    if grade.startswith(RESISTANCE_GRADE):
+                        entry['gating'].add(one_drug)
 
     return spans
 
@@ -149,6 +156,7 @@ def main():
     for gene, entry in spans.items():
         chrom = entry['chrom']
         drugs = ';'.join(sorted(entry['drugs'])) or 'unknown'
+        gating = ';'.join(sorted(entry['gating'])) or '.'
 
         clusters = []
         for start, end in sorted(entry['intervals']):
@@ -170,7 +178,7 @@ def main():
 
             for p_start, p_end in subtract(chrom, padded_start, padded_end, mask):
                 if p_end > p_start:
-                    rows.append((chrom, p_start, p_end, gene, drugs))
+                    rows.append((chrom, p_start, p_end, gene, drugs, gating))
                     survived = True
 
         if not survived:
@@ -179,22 +187,27 @@ def main():
     rows.sort(key=lambda r: (r[0], r[1], r[2]))
 
     with open(args.output, 'w') as out:
-        out.write('#chrom\tstart\tend\tgene\tdrugs\n')
-        for chrom, start, end, gene, drugs in rows:
-            out.write(f'{chrom}\t{start}\t{end}\t{gene}\t{drugs}\n')
+        out.write('#chrom\tstart\tend\tgene\tdrugs\tgating_drugs\n')
+        for chrom, start, end, gene, drugs, gating in rows:
+            out.write(f'{chrom}\t{start}\t{end}\t{gene}\t{drugs}\t{gating}\n')
 
     drug_genes = defaultdict(set)
-    for _, _, _, gene, drugs in rows:
+    gating_genes = defaultdict(set)
+    for _, _, _, gene, drugs, gating in rows:
         for drug in drugs.split(';'):
             drug_genes[drug].add(gene)
+        for drug in gating.split(';'):
+            if drug != '.':
+                gating_genes[drug].add(gene)
 
     print(f'Wrote {len(rows)} intervals covering {len(spans) - len(dropped_entirely)} genes '
           f'to {args.output}')
     print(f'Drugs represented: {len(drug_genes)}')
     for drug in sorted(drug_genes):
         genes = sorted(drug_genes[drug])
-        preview = ', '.join(genes[:6]) + (' ...' if len(genes) > 6 else '')
-        print(f'  {drug:<16} {len(genes):>3} loci  ({preview})')
+        gating = sorted(gating_genes.get(drug, []))
+        print(f'  {drug:<16} {len(genes):>3} loci, {len(gating):>2} gating susceptibility '
+              f'({", ".join(gating) or "none"})')
 
     if dropped_entirely:
         print(f'\nWarning: {len(dropped_entirely)} genes fell entirely inside the '
