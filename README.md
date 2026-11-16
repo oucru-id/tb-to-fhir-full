@@ -139,12 +139,6 @@ A sample with no row in the patient table gets a genomic bundle only. It is list
   `sys-ids.kemkes.go.id` identifiers, the administrative-code and citizenship extensions, and the
   Kemkes WHO-grade and conclusion codings.
 
-### Validation
-
-Every bundle is checked with the HL7 FHIR validator against `hl7.fhir.uv.genomics-reporting#3.0.0`
-and the project CodeSystems in `assets/fhir/`.
-- Results: `fhir/validation/validation_summary.tsv`.
-
 ### Upload
 
 Upload runs only when `--fhir_server_url` is given. It sends only linked bundles that passed
@@ -158,26 +152,10 @@ nextflow run . --input samplesheet.csv --patient_metadata site/patients.csv \
   --fhir_server_url https://<server>/fhir --fhir_auth_url https://<sso>/realms/<realm>
 ```
 
-To also send an `X-Api-Key` header, set the `TBFHIR_API_KEY` secret and add
-`--fhir_upload_api_key`. For SATUSEHAT, test against the sandbox first.
-`--bundle_request_method POST` sends server-assigned-id transactions (with `ifNoneExist` on NIK).
-`--external_refs` maps samples to Patients that already exist on the server.
-
 ## Configuration
 
 All parameters are described in [nextflow_schema.json](nextflow_schema.json) and listed by
-`nextflow run . --help`. The most used:
-
-| Parameter | Default | Purpose |
-|---|---|---|
-| `--input` | | samplesheet |
-| `--outdir` | `results` | output folder |
-| `--fhir_profile` | `generic` | `generic` or `satusehat` |
-| `--patient_metadata` | | enables the clinical and link steps |
-| `--performer_org_id` | | performing laboratory, as the genomic report's performer |
-| `--coverage_min_depth` / `--coverage_min_breadth` | `10` / `0.95` | assessability threshold per locus |
-| `--filter_min_depth` / `--filter_min_quality` | `5` / `20` | variant call filters |
-| `--max_cpus` / `--max_memory` / `--max_time` | `8` / `16 GB` / `24h` | cap on any single task |
+`nextflow run . --help`.
 
 ### WHO annotation table
 
@@ -210,20 +188,6 @@ results/
     ├── bundle/             <id>.bundle.fhir.json, link_summary.tsv    (personal data)
     ├── validation/         validation_summary.tsv, validation_<n>.json (validator output per batch)
     └── upload/             <id>.bundle.upload.json
-```
-
-## Repository layout
-
-```
-main.nf  workflows/tbfhir.nf  subworkflows/local/  modules/local/   Nextflow code
-bin/                       Python steps (genomic, clinical, link, coverage, lineage, upload)
-conf/                      resources, output layout, test profiles
-assets/                    samplesheet schema, FHIR CodeSystems, metadata templates
-data/                      reference genome, WHO annotation table, lineage barcode, masks
-tools/annotation/          rebuild the WHO annotation table
-tools/metadata_ui/         Streamlit editor for the clinical metadata table
-tools/satusehat/           SATUSEHAT token and patient-lookup helpers
-tests/                     pytest suite, synthetic fixtures, v1 equivalence goldens
 ```
 
 ## Support
