@@ -5,7 +5,8 @@ process CLASSIFY_LINEAGE {
     container "quay.io/biocontainers/python:3.12.12"
 
     input:
-    tuple val(meta), path(barcode_vcf)
+    tuple val(meta), path(vcf), path(pileup)
+    path fasta
     path barcode_bed
 
     output:
@@ -13,10 +14,14 @@ process CLASSIFY_LINEAGE {
     path "versions.yml",                              emit: versions
 
     script:
+    def pileup_arg = pileup ? "--pileup ${pileup}" : ''
     """
     lineage_classifier.py \\
-        --vcf ${barcode_vcf} \\
+        --vcf ${vcf} \\
+        ${pileup_arg} \\
         --barcode ${barcode_bed} \\
+        --reference ${fasta} \\
+        --min_depth ${params.filter_min_depth} \\
         --sample_id '${meta.id}' \\
         --output ${meta.id}.lineage.json
 

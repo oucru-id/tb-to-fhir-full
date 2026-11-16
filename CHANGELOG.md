@@ -2,6 +2,10 @@
 
 ---
 
+## [2.0.1]
+
+- **Coverage gate limited to resistance loci.**
+
 ## [2.0.0]
 
 - The FHIR output is split into a **PHI-free genomic layer** and an **optional clinical layer**.

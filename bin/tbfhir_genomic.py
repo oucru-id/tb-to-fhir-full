@@ -225,6 +225,8 @@ def build_susceptibility_panel(ctx, resistant_drugs, coverage_info):
                 reason = "insufficient coverage at: " + ", ".join(drug_coverage['inadequate_loci'])
             elif drug_coverage.get('loci_without_coverage_data'):
                 reason = "no coverage data for: " + ", ".join(drug_coverage['loci_without_coverage_data'])
+            elif drug_coverage.get('reason'):
+                reason = drug_coverage['reason']
             elif not drug_coverage:
                 reason = ('the WHO mutation catalogue contains no graded variants for this '
                           'drug, so genotypic prediction is not possible; phenotypic DST is '
@@ -521,8 +523,8 @@ def parse_args(argv=None):
     p.add_argument('--output', required=True, help='output Bundle JSON')
     p.add_argument('--lineage_json', help="this sample's <id>.lineage.json")
     p.add_argument('--coverage_json', help="this sample's <id>.coverage.json")
-    p.add_argument('--lineage_dir', help=argparse.SUPPRESS)    # v1 compatibility
-    p.add_argument('--coverage_dir', help=argparse.SUPPRESS)   # v1 compatibility
+    p.add_argument('--lineage_dir', help=argparse.SUPPRESS)    
+    p.add_argument('--coverage_dir', help=argparse.SUPPRESS)   
     p.add_argument('--gene_map', help='optional TSV gene<TAB>ncbi_gene_id extending the built-in map')
     p.add_argument('--fhir_profile', default='generic', choices=['generic', 'satusehat'])
     p.add_argument('--identifier_system_base', default=None,

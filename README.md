@@ -9,10 +9,16 @@ HL7 FHIR R4 resources conforming to the
 
 - **Multi-platform input**: Illumina paired-end reads, Oxford Nanopore reads, or VCFs.
 - **Per-drug WHO grading**
-- **Coverage-gated susceptibility**: a drug is reported susceptible only when every one of its
-  resistance loci was sequenced to the required depth and breadth. Otherwise it is
-  **Indeterminate**.
-- **Lineage classification** from barcode SNPs, with confidence and SNP support.
+- **Coverage-gated susceptibility**: a drug is reported susceptible only when every locus that
+  carries a WHO grade 1-2 (associated with resistance) variant for that drug was sequenced to the
+  required depth and breadth. Otherwise it is **Indeterminate**. Loci with only uncertain or
+  not-associated variants are still reported in the coverage QC but do not block a susceptible
+  result.
+- **Lineage classification** from the lineage barcode: allele counts at every barcode site are read
+  from the alignment (or the VCF for VCF input), and the deepest sublineage whose markers are
+  present and whose parent lineages are not contradicted is reported, with confidence, barcode
+  support and a flag for a possible mixed infection. With no usable barcode data the lineage is
+  `unknown`.
 - **QC**: FastQC (Illumina) or NanoPlot (ONT), MultiQC, and per-locus coverage over the WHO
   resistance targets.
 - **Two FHIR profiles**:
