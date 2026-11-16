@@ -5,6 +5,7 @@
 ## [2.0.1]
 
 - **Coverage gate limited to resistance loci.**
+- medaka starts with 11 GB of memory; with 6 GB it was killed and retried on every ONT sample.
 
 ## [2.0.0]
 
