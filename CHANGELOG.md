@@ -2,6 +2,28 @@
 
 ---
 
+## [Unreleased]
+
+- **Lineage calls for H37Rv-like isolates.** The barcode markers of `lineage4` and `lineage4.9`
+  equal the H37Rv base, so they never appear in a VCF and lineage 4.9 isolates matched no marker.
+  The new `BARCODE_PILEUP` step counts alleles at every barcode site in the BAM
+  (`bcftools mpileup`), so reference-allele markers are seen, and a site below
+  `--filter_min_depth` counts as no data. For VCF input, a site missing from the VCF is taken as
+  the reference only when the VCF is genome-wide (at least 50 SNPs); such calls are at most
+  `medium` confidence.
+- **No more fallback lineage.** With no matching marker the classifier reported the first lineage
+  of the barcode file (`lineage4.2.2.1`, confidence `low`), even for samples without data. It now
+  reports `unknown` with a `reason`, and the lineage Observation is left out of the FHIR output.
+- **Deepest consistent sublineage, independent of file order.** The call is the deepest lineage
+  with most of its markers present and no contradicted parent (for example `lineage2.2.1.1`
+  instead of `lineage2`). A lone marker of another lineage no longer wins. If two sibling
+  sublineages are both supported, their common parent is reported with `ambiguous_sublineages`
+  and confidence `low`.
+- `<id>.lineage.json` adds `lineage_path`, `evidence` (`pileup` or `vcf`), `min_depth`,
+  `possible_mixed_infection`, `minor_lineages` (lineages at 10-50% allele fraction),
+  `ambiguous_sublineages`, `reason` and, for VCF input, `vcf_snps` and `reference_inferred`.
+  `score` is now the mean allele fraction of the called lineage's markers.
+
 ## [2.0.0]
 
 - The FHIR output is split into a **PHI-free genomic layer** and an **optional clinical layer**.

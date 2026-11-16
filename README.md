@@ -12,7 +12,11 @@ HL7 FHIR R4 resources conforming to the
 - **Coverage-gated susceptibility**: a drug is reported susceptible only when every one of its
   resistance loci was sequenced to the required depth and breadth. Otherwise it is
   **Indeterminate**.
-- **Lineage classification** from barcode SNPs, with confidence and SNP support.
+- **Lineage classification** from the lineage barcode: allele counts at every barcode site are read
+  from the alignment (or the VCF for VCF input), and the deepest sublineage whose markers are
+  present and whose parent lineages are not contradicted is reported, with confidence, barcode
+  support and a flag for a possible mixed infection. With no usable barcode data the lineage is
+  `unknown`.
 - **QC**: FastQC (Illumina) or NanoPlot (ONT), MultiQC, and per-locus coverage over the WHO
   resistance targets.
 - **Two FHIR profiles**:

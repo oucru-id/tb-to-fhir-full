@@ -155,8 +155,9 @@ workflow TBFHIR {
     ANNOTATE_VARIANTS(FILTER_VARIANTS.out.vcf, annotation_table, annotation_index, annotation_header)
     ch_versions = ch_versions.mix(FILTER_VARIANTS.out.versions, ANNOTATE_VARIANTS.out.versions)
 
-    LINEAGE(FILTER_VARIANTS.out.vcf, barcode_bed)
-    COVERAGE(ILLUMINA.out.bam.mix(NANOPORE.out.bam), ch_vcf.map { meta, _f -> meta },
+    ch_bams = ILLUMINA.out.bam.mix(NANOPORE.out.bam)
+    LINEAGE(FILTER_VARIANTS.out.vcf, ch_bams, fasta, PREPARE_REFERENCE.out.fai, barcode_bed)
+    COVERAGE(ch_bams, ch_vcf.map { meta, _f -> meta },
              annotation_table, repetitive, PREPARE_REFERENCE.out.fai)
     ch_versions = ch_versions.mix(LINEAGE.out.versions, COVERAGE.out.versions)
 
