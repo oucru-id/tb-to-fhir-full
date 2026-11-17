@@ -14,12 +14,10 @@ HL7 FHIR R4 resources conforming to the
   required depth. Loci whose graded variants for the drug include loss-of-function alleles (for
   example `katG`, `ethA`, `Rv0678`) need the required breadth over the whole locus; for the other
   loci (for example `rpoB`, `rrs`, `eis`, `gyrA`) every graded position must reach the required
-  depth. Otherwise the drug is **Indeterminate**. Loci with only uncertain or not-associated
+  depth. Otherwise, the drug is **Indeterminate**. Loci with only uncertain or not-associated
   variants are still reported in the coverage QC but do not block a susceptible result.
-- **Lineage classification** from the lineage barcode: allele counts at every barcode site are read
-  from the alignment (or the VCF for VCF input), and the deepest sublineage whose markers are
-  present and whose parent lineages are not contradicted is reported, with confidence, barcode
-  support and a flag for a possible mixed infection. With no usable barcode data the lineage is
+- **Lineage classification** from the lineage barcode and reported with confidence, barcode
+  support, and a flag for a possible mixed infection. With no usable barcode data, the lineage is
   `unknown`.
 - **QC**: FastQC (Illumina) or NanoPlot (ONT), MultiQC, and per-locus coverage over the WHO
   resistance targets.
