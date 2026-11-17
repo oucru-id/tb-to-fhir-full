@@ -84,7 +84,7 @@ TB0003,vcf,,,/data/TB0003.vcf.gz
 ```
 
 ```bash
-nextflow run oucru-id/tb-to-fhir-full -r v2.0.0 --input samplesheet.csv --outdir results
+nextflow run oucru-id/tb-to-fhir-full -r v2.0.2 --input samplesheet.csv --outdir results
 ```
 
 Sample ids may use letters, digits, `.`, `_` and `-` (up to 40 characters). Use laboratory
