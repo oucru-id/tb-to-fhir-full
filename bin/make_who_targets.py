@@ -6,6 +6,8 @@ import sys
 from collections import defaultdict
 
 RESISTANCE_GRADE = 'Assoc w R'
+LOSS_OF_FUNCTION_EFFECTS = ('loss_of_function_variant', 'frameshift_variant', 'stop_gained',
+                            'start_lost', 'stop_lost')
 
 
 def load_gene_spans(annotation_table):
@@ -20,6 +22,7 @@ def load_gene_spans(annotation_table):
 
             chrom, pos, ref, alt, gene, drug = fields[:6]
             grades = fields[7].split(',')
+            effects = fields[6].split(',')
 
             if not gene or gene.lower() == 'unknown':
                 continue
@@ -40,19 +43,50 @@ def load_gene_spans(annotation_table):
                     'intervals': [],
                     'drugs': set(),
                     'gating': set(),
+                    'graded': defaultdict(set),
+                    'loss_of_function': set(),
                 }
                 entry = spans[gene]
             entry['intervals'].append((position, end))
 
-            for index, one_drug in enumerate(drug.split(',')):
+            drug_list = drug.split(',')
+            for index, one_drug in enumerate(drug_list):
                 one_drug = one_drug.strip()
                 if one_drug and one_drug.lower() != 'unknown':
                     entry['drugs'].add(one_drug)
                     grade = grades[index].strip() if index < len(grades) else ''
                     if grade.startswith(RESISTANCE_GRADE):
                         entry['gating'].add(one_drug)
+                        entry['graded'][one_drug].add((position - 1, end))
+                        effect = effects[index] if len(effects) == len(drug_list) else fields[6]
+                        if any(e in effect for e in LOSS_OF_FUNCTION_EFFECTS):
+                            entry['loss_of_function'].add(one_drug)
 
     return spans
+
+
+def merge_intervals(intervals):
+    merged = []
+    for start, end, drugs in sorted(intervals, key=lambda t: (t[0], t[1])):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+            merged[-1][2] |= drugs
+        else:
+            merged.append([start, end, set(drugs)])
+    return merged
+
+
+def graded_position_rows(spans, mask):
+    rows = []
+    for gene, entry in spans.items():
+        intervals = [(start, end, {drug}) for drug, drug_spans in entry['graded'].items()
+                     if drug not in entry['loss_of_function'] for start, end in drug_spans]
+        for start, end, drugs in merge_intervals(intervals):
+            for p_start, p_end in subtract(entry['chrom'], start, end, mask):
+                if p_end > p_start:
+                    rows.append((entry['chrom'], p_start, p_end, gene, ';'.join(sorted(drugs))))
+    rows.sort(key=lambda r: (r[0], r[1], r[2]))
+    return rows
 
 
 def load_contig_lengths(fai_path):
@@ -127,6 +161,9 @@ def main():
     parser.add_argument('--annotation-table', required=True,
                         help='WHO catalogue annotation table (.tsv or .tsv.gz)')
     parser.add_argument('--output', required=True, help='Output BED path')
+    parser.add_argument('--positions-output', default=None,
+                        help='Also write a BED of the WHO grade 1-2 positions of loci whose '
+                             'graded variants for a drug include no loss-of-function allele')
     parser.add_argument('--repetitive-regions', default=None,
                         help='BED of regions to exclude (pe/ppe, IS elements)')
     parser.add_argument('--promoter-padding', type=int, default=200,
@@ -199,6 +236,16 @@ def main():
         for drug in gating.split(';'):
             if drug != '.':
                 gating_genes[drug].add(gene)
+
+    if args.positions_output:
+        position_rows = graded_position_rows(spans, mask)
+        with open(args.positions_output, 'w') as out:
+            out.write('#chrom\tstart\tend\tgene\tdrugs\n')
+            for chrom, start, end, gene, drugs in position_rows:
+                out.write(f'{chrom}\t{start}\t{end}\t{gene}\t{drugs}\n')
+        positional = sorted({(drug, gene) for *_, gene, drugs in position_rows for drug in drugs.split(';')})
+        print(f'Wrote {len(position_rows)} graded-position intervals for {len(positional)} '
+              f'drug-locus pairs to {args.positions_output}')
 
     print(f'Wrote {len(rows)} intervals covering {len(spans) - len(dropped_entirely)} genes '
           f'to {args.output}')

@@ -9,8 +9,9 @@ process MAKE_WHO_TARGETS {
     path fai
 
     output:
-    path "who_targets.bed", emit: bed
-    path "versions.yml",    emit: versions
+    path "who_targets.bed",   emit: bed
+    path "who_positions.bed", emit: positions
+    path "versions.yml",      emit: versions
 
     script:
     def mask = repetitive_regions.name != 'NO_FILE' ? "--repetitive-regions ${repetitive_regions}" : ''
@@ -18,6 +19,7 @@ process MAKE_WHO_TARGETS {
     make_who_targets.py \\
         --annotation-table ${annotation_table} \\
         --output who_targets.bed \\
+        --positions-output who_positions.bed \\
         --promoter-padding ${params.promoter_padding} \\
         --reference-fai ${fai} \\
         ${mask}
@@ -31,6 +33,7 @@ process MAKE_WHO_TARGETS {
     stub:
     """
     printf 'NC_000962.3\\t0\\t100\\trpoB\\tRifampicin\\n' > who_targets.bed
+    printf 'NC_000962.3\\t50\\t51\\trpoB\\tRifampicin\\n' > who_positions.bed
     printf '"%s":\\n    python: stub\\n' "${task.process}" > versions.yml
     """
 }

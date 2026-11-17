@@ -51,6 +51,24 @@ def load_regions(path):
     return depths
 
 
+def load_positions(path):
+    positions = {}
+    with open(path) as handle:
+        for line in handle:
+            if line.startswith('#'):
+                continue
+            fields = line.rstrip('\n').split('\t')
+            if len(fields) < 5:
+                continue
+            key = (fields[0], int(fields[1]), int(fields[2]))
+            positions[key] = (fields[3], [d for d in fields[4].split(';') if d])
+    return positions
+
+
+def describe(start, end):
+    return str(end) if end - start == 1 else f'{start + 1}-{end}'
+
+
 def load_thresholds(path, min_depth):
 
     breadths = {}
@@ -95,6 +113,10 @@ def main():
     parser.add_argument('--thresholds')
     parser.add_argument('--min-depth', type=int, default=10)
     parser.add_argument('--min-breadth', type=float, default=0.95)
+    parser.add_argument('--positions', default=None,
+                        help='BED of WHO grade 1-2 positions (make_who_targets.py --positions-output)')
+    parser.add_argument('--position-thresholds', default=None,
+                        help='mosdepth thresholds.bed.gz computed over --positions')
     parser.add_argument('--not-assessed', default=None,
                         help='Emit an explicit "coverage not assessed" summary with this reason')
     args = parser.parse_args()
@@ -152,6 +174,20 @@ def main():
             'drugs': sorted(gene_drugs.get(gene, [])),
         }
 
+    use_positions = bool(args.positions and args.position_thresholds and gene_gating is not None)
+    pair_positions = defaultdict(list)
+    if use_positions:
+        position_breadths = load_thresholds(args.position_thresholds, args.min_depth)
+        for key, (gene, position_drugs) in load_positions(args.positions).items():
+            covered = position_breadths.get(key, 0.0) >= 1.0
+            for drug in position_drugs:
+                pair_positions[(drug, gene)].append((key[1], key[2], covered))
+            if gene in genes:
+                genes[gene].setdefault('graded_positions', 0)
+                genes[gene].setdefault('graded_positions_at_min_depth', 0)
+                genes[gene]['graded_positions'] += 1
+                genes[gene]['graded_positions_at_min_depth'] += int(covered)
+
     drug_to_genes = defaultdict(set)
     for gene, drugs in gene_drugs.items():
         for drug in drugs:
@@ -163,8 +199,12 @@ def main():
             gating = set(drug_genes)
         else:
             gating = {g for g in drug_genes if drug in gene_gating.get(g, set())}
-        inadequate = sorted(g for g in gating if not genes.get(g, {}).get('adequate', False))
-        missing = sorted(g for g in gating if g not in genes)
+        positional = {g for g in gating if (drug, g) in pair_positions}
+        uncovered = {g: [describe(s, e) for s, e, ok in sorted(pair_positions[(drug, g)]) if not ok]
+                     for g in sorted(positional)}
+        inadequate = sorted([g for g in gating - positional if not genes.get(g, {}).get('adequate', False)]
+                            + [g for g in positional if uncovered[g]])
+        missing = sorted(g for g in gating - positional if g not in genes)
         other = sorted(g for g in drug_genes - gating if not genes.get(g, {}).get('adequate', False))
         drugs[drug] = {
             'loci': sorted(drug_genes),
@@ -174,16 +214,26 @@ def main():
             'loci_without_coverage_data': missing,
             'inadequate_other_loci': other,
         }
+        if use_positions:
+            drugs[drug]['position_gated_loci'] = sorted(positional)
+            drugs[drug]['uncovered_positions'] = {g: p for g, p in uncovered.items() if p}
         if not gating:
             drugs[drug]['reason'] = ('no locus carries a WHO catalogue variant graded as associated '
                                      'with resistance to this drug')
 
+    if use_positions:
+        gating_rule = ('WHO grade 1-2 positions for loci without graded loss-of-function variants; '
+                       'whole locus otherwise')
+    elif gene_gating is not None:
+        gating_rule = 'loci with WHO grade 1-2 variants'
+    else:
+        gating_rule = 'all catalogue loci'
     summary = {
         'sample_id': args.sample_id,
         'coverage_assessed': True,
         'min_depth': args.min_depth,
         'min_breadth': args.min_breadth,
-        'gating': 'loci with WHO grade 1-2 variants' if gene_gating is not None else 'all catalogue loci',
+        'gating': gating_rule,
         'genes': genes,
         'drugs': drugs,
     }

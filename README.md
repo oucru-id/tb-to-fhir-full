@@ -11,9 +11,11 @@ HL7 FHIR R4 resources conforming to the
 - **Per-drug WHO grading**
 - **Coverage-gated susceptibility**: a drug is reported susceptible only when every locus that
   carries a WHO grade 1-2 (associated with resistance) variant for that drug was sequenced to the
-  required depth and breadth. Otherwise it is **Indeterminate**. Loci with only uncertain or
-  not-associated variants are still reported in the coverage QC but do not block a susceptible
-  result.
+  required depth. Loci whose graded variants for the drug include loss-of-function alleles (for
+  example `katG`, `ethA`, `Rv0678`) need the required breadth over the whole locus; for the other
+  loci (for example `rpoB`, `rrs`, `eis`, `gyrA`) every graded position must reach the required
+  depth. Otherwise the drug is **Indeterminate**. Loci with only uncertain or not-associated
+  variants are still reported in the coverage QC but do not block a susceptible result.
 - **Lineage classification** from the lineage barcode: allele counts at every barcode site are read
   from the alignment (or the VCF for VCF input), and the deepest sublineage whose markers are
   present and whose parent lineages are not contradicted is reported, with confidence, barcode
@@ -178,7 +180,7 @@ results/
 ├── qc/fastqc/              FastQC reports (Illumina)
 ├── qc/nanoplot/            <id>_NanoStats.txt, <id>_NanoPlot-report.html (ONT)
 ├── qc/multiqc/             multiqc_report.html
-├── qc/coverage/            who_targets.bed, <id>.coverage.json, mosdepth beds
+├── qc/coverage/            who_targets.bed, who_positions.bed, <id>.coverage.json, mosdepth beds
 ├── variants/               <id>.filtered_variants.vcf.gz, <id>.annotated_variants.vcf.gz
 ├── lineage/                <id>.lineage.json
 ├── reports/                <id>.summary_report.txt

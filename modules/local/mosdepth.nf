@@ -7,9 +7,11 @@ process MOSDEPTH {
     input:
     tuple val(meta), path(bam), path(bai)
     path targets
+    path positions
 
     output:
-    tuple val(meta), path("${meta.id}.regions.bed.gz"), path("${meta.id}.thresholds.bed.gz"), emit: beds
+    tuple val(meta), path("${meta.id}.regions.bed.gz"), path("${meta.id}.thresholds.bed.gz"),
+          path("${meta.id}.positions.thresholds.bed.gz"), emit: beds
     path "versions.yml", emit: versions
 
     script:
@@ -23,6 +25,14 @@ process MOSDEPTH {
         ${meta.id} \\
         ${bam}
 
+    mosdepth \\
+        --by ${positions} \\
+        --thresholds ${params.coverage_min_depth} \\
+        --no-per-base \\
+        --threads ${task.cpus} \\
+        ${meta.id}.positions \\
+        ${bam}
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         mosdepth: \$(mosdepth --version 2>&1 | sed 's/mosdepth //')
@@ -33,6 +43,7 @@ process MOSDEPTH {
     """
     echo | gzip > ${meta.id}.regions.bed.gz
     echo | gzip > ${meta.id}.thresholds.bed.gz
+    echo | gzip > ${meta.id}.positions.thresholds.bed.gz
     printf '"%s":\\n    mosdepth: stub\\n' "${task.process}" > versions.yml
     """
 }

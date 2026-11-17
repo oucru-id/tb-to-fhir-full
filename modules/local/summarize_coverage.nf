@@ -5,8 +5,9 @@ process SUMMARIZE_COVERAGE {
     container "quay.io/biocontainers/python:3.12.12"
 
     input:
-    tuple val(meta), path(regions), path(thresholds)
+    tuple val(meta), path(regions), path(thresholds), path(position_thresholds)
     path targets
+    path positions
 
     output:
     tuple val(meta), path("${meta.id}.coverage.json"), emit: json
@@ -19,6 +20,8 @@ process SUMMARIZE_COVERAGE {
         --targets ${targets} \\
         --regions ${regions} \\
         --thresholds ${thresholds} \\
+        --positions ${positions} \\
+        --position-thresholds ${position_thresholds} \\
         --min-depth ${params.coverage_min_depth} \\
         --min-breadth ${params.coverage_min_breadth} \\
         --output ${meta.id}.coverage.json
