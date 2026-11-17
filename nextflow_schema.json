@@ -110,7 +110,7 @@
                 },
                 "nanopore_min_l": {
                     "type": "integer",
-                    "default": 500,
+                    "default": 200,
                     "description": "chopper minimum read length."
                 },
                 "medaka_model": {

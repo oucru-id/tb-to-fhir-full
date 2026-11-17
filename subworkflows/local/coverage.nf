@@ -14,8 +14,9 @@ workflow COVERAGE {
     main:
     MAKE_WHO_TARGETS(annotation_table, repetitive_regions, fai)
     targets = MAKE_WHO_TARGETS.out.bed
-    MOSDEPTH(bams, targets)
-    SUMMARIZE_COVERAGE(MOSDEPTH.out.beds, targets)
+    positions = MAKE_WHO_TARGETS.out.positions
+    MOSDEPTH(bams, targets, positions)
+    SUMMARIZE_COVERAGE(MOSDEPTH.out.beds, targets, positions)
     COVERAGE_NOT_ASSESSED(vcf_only_meta)
 
     emit:

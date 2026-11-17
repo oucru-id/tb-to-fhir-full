@@ -222,7 +222,10 @@ def build_susceptibility_panel(ctx, resistant_drugs, coverage_info):
             if not coverage_assessed:
                 reason = (coverage_info or {}).get('reason', 'no coverage data available for this sample')
             elif drug_coverage.get('inadequate_loci'):
-                reason = "insufficient coverage at: " + ", ".join(drug_coverage['inadequate_loci'])
+                uncovered = drug_coverage.get('uncovered_positions') or {}
+                reason = "insufficient coverage at: " + ", ".join(
+                    f"{locus} (graded position {', '.join(uncovered[locus])})" if uncovered.get(locus) else locus
+                    for locus in drug_coverage['inadequate_loci'])
             elif drug_coverage.get('loci_without_coverage_data'):
                 reason = "no coverage data for: " + ", ".join(drug_coverage['loci_without_coverage_data'])
             elif drug_coverage.get('reason'):
